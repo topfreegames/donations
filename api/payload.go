@@ -121,3 +121,47 @@ func (ugp *UpdateGamePayload) ToJSON() ([]byte, error) {
 	ugp.MarshalEasyJSON(&w)
 	return w.BuildBytes()
 }
+
+//CreateDonationRequestPayload maps the payload for the Create Game route
+type CreateDonationRequestPayload struct {
+	Item   string `json:"item"`
+	Player string `json:"player"`
+	Clan   string `json:"clan"`
+}
+
+//Validate all the required fields for creating a game
+func (cdrp *CreateDonationRequestPayload) Validate() []string {
+	v := NewValidation()
+	v.validateRequiredString("item", cdrp.Item)
+	v.validateRequiredString("player", cdrp.Player)
+	v.validateRequiredString("clan", cdrp.Clan)
+	return v.Errors()
+}
+
+//ToJSON returns the payload as JSON
+func (cdrp *CreateDonationRequestPayload) ToJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	cdrp.MarshalEasyJSON(&w)
+	return w.BuildBytes()
+}
+
+//DonationPayload maps the payload for the Create Game route
+type DonationPayload struct {
+	Player string `json:"player"`
+	Amount int    `json:"amount"`
+}
+
+//Validate all the required fields for creating a game
+func (dp *DonationPayload) Validate() []string {
+	v := NewValidation()
+	v.validateRequiredString("player", dp.Player)
+	v.validateRequiredInt("amount", dp.Amount)
+	return v.Errors()
+}
+
+//ToJSON returns the payload as JSON
+func (dp *DonationPayload) ToJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	dp.MarshalEasyJSON(&w)
+	return w.BuildBytes()
+}

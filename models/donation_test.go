@@ -181,4 +181,46 @@ var _ = Describe("Donation Model", func() {
 			}, 500)
 		})
 	})
+
+	Describe("Getting a donation request", func() {
+		Describe("Feature", func() {
+			It("Should get a donation request by id", func() {
+				game, err := GetTestGame(db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				donationRequest, err := GetTestDonationRequest(game, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				dbDonationRequest, err := models.GetDonationRequestByID(donationRequest.ID, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dbDonationRequest.Item).To(Equal(donationRequest.Item))
+				Expect(dbDonationRequest.Player).To(Equal(donationRequest.Player))
+				Expect(dbDonationRequest.Clan).To(Equal(donationRequest.Clan))
+				Expect(dbDonationRequest.Game).NotTo(BeNil())
+				Expect(dbDonationRequest.Game.ID).To(Equal(game.ID))
+			})
+		})
+
+		Describe("Measure", func() {
+			var donationRequest *models.DonationRequest
+
+			BeforeOnce(func() {
+				game, err := GetTestGame(db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				donationRequest, err = GetTestDonationRequest(game, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Measure("it should get donation requests fast", func(b Benchmarker) {
+				runtime := b.Time("runtime", func() {
+					_, err := models.GetDonationRequestByID(donationRequest.ID, db, logger)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.05), "Operation shouldn't take this long.")
+			}, 500)
+		})
+	})
+
 })

@@ -7,6 +7,7 @@ import (
 
 	"github.com/mailru/easyjson/jlexer"
 	"github.com/mailru/easyjson/jwriter"
+	"github.com/topfreegames/donations/errors"
 	"github.com/topfreegames/donations/log"
 	"github.com/uber-go/zap"
 	mgo "gopkg.in/mgo.v2"
@@ -38,7 +39,7 @@ func (d *DonationRequest) Create(db *mgo.Database, logger zap.Logger) error {
 		zap.String("operation", "Save"),
 	)
 
-	d.ID = bson.NewObjectId().String()
+	d.ID = bson.NewObjectId().Hex()
 
 	log.D(l, "Saving donation request...")
 	err := GetDonationRequestsCollection(db).Insert(d)
@@ -95,12 +96,20 @@ func (d *DonationRequest) ToJSON() ([]byte, error) {
 	return w.BuildBytes()
 }
 
-//GetDonationRequestFromJSON unmarshals the game from the specified JSON
+//GetDonationRequestFromJSON unmarshals the donation request from the specified JSON
 func GetDonationRequestFromJSON(data []byte) (*DonationRequest, error) {
 	donationRequest := &DonationRequest{}
 	l := jlexer.Lexer{Data: data}
 	donationRequest.UnmarshalEasyJSON(&l)
 	return donationRequest, l.Error()
+}
+
+//GetDonationFromJSON unmarshals the donation from the specified JSON
+func GetDonationFromJSON(data []byte) (*Donation, error) {
+	donation := &Donation{}
+	l := jlexer.Lexer{Data: data}
+	donation.UnmarshalEasyJSON(&l)
+	return donation, l.Error()
 }
 
 //NewDonationRequest returns a new instance of DonationRequest
@@ -116,4 +125,17 @@ func NewDonationRequest(game *Game, item, player, clan string) *DonationRequest 
 //GetDonationRequestsCollection to update or query games
 func GetDonationRequestsCollection(db *mgo.Database) *mgo.Collection {
 	return db.C("requests")
+}
+
+//GetDonationRequestByID rtrieves the game by its id
+func GetDonationRequestByID(id string, db *mgo.Database, logger zap.Logger) (*DonationRequest, error) {
+	var donationRequest DonationRequest
+	err := GetDonationRequestsCollection(db).FindId(id).One(&donationRequest)
+	if err != nil {
+		if err.Error() == NotFoundString {
+			return nil, errors.NewDocumentNotFoundError("donationRequest", id)
+		}
+		return nil, err
+	}
+	return &donationRequest, nil
 }

@@ -209,6 +209,9 @@ func (app *App) configureApplication() error {
 	a.Post("/games", CreateGameHandler(app))
 	a.Put("/games/:gameID", UpdateGameHandler(app))
 
+	a.Post("/games/:gameID/donation-requests/", CreateDonationRequestHandler(app))
+	a.Post("/games/:gameID/donation-requests/:donationRequestID/", CreateDonationHandler(app))
+
 	app.configureMongoDB()
 
 	l.Debug("Application configured successfully.")

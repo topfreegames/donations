@@ -16,6 +16,18 @@ func GetTestGame(db *mgo.Database, logger zap.Logger) (*models.Game, error) {
 	return game, err
 }
 
+//GetTestDonationRequest to use in tests
+func GetTestDonationRequest(game *models.Game, db *mgo.Database, logger zap.Logger) (*models.DonationRequest, error) {
+	donationRequest := models.NewDonationRequest(
+		game,
+		uuid.NewV4().String(),
+		uuid.NewV4().String(),
+		uuid.NewV4().String(),
+	)
+	err := donationRequest.Create(db, logger)
+	return donationRequest, err
+}
+
 //ToNullInt64 returns valid if int > 0
 func ToNullInt64(v int64) sql.NullInt64 {
 	return sql.NullInt64{Int64: v, Valid: v > 0}
