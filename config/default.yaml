@@ -1,0 +1,16 @@
+healthcheck:
+  workingText: WORKING
+
+mongo:
+  host: mongo
+  port: 27017
+  db: donations
+
+sentry:
+  url: ""
+
+api:
+  maxReadBufferSize: 80240
+  basicAuth:
+    user: ""
+    pass: ""

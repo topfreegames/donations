@@ -1,0 +1,20 @@
+healthcheck:
+  workingText: WORKING
+
+mongo:
+  host: localhost
+  port: 9999
+  db: ur-perf
+
+sentry:
+  url: ""
+
+api:
+  maxReadBufferSize: 80240
+  authenticateProvider: false
+  basicAuth:
+    user: ""
+    pass: ""
+  providers:
+    gamecenter:
+      timeout: 600

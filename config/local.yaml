@@ -1,0 +1,16 @@
+healthcheck:
+  workingText: WORKING
+
+mongo:
+  host: localhost
+  port: 9999
+  db: donations
+
+sentry:
+  url: ""
+
+api:
+  maxReadBufferSize: 80240
+  basicAuth:
+    user: ""
+    pass: ""

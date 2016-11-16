@@ -9,3 +9,6 @@ import:
 - package: github.com/spf13/viper
 - package: github.com/spf13/cobra
 - package: github.com/hashicorp/go-version
+- package: github.com/getsentry/raven-go
+- package: github.com/newrelic/go-agent
+  version: ^1.4.0
