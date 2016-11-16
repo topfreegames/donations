@@ -1,0 +1,9 @@
+mode: atomic
+github.com/topfreegames/donations/metadata/version.go:26.39,28.29 2 4
+github.com/topfreegames/donations/metadata/version.go:34.2,36.18 2 4
+github.com/topfreegames/donations/metadata/version.go:43.2,43.83 1 4
+github.com/topfreegames/donations/metadata/version.go:28.29,30.3 1 1
+github.com/topfreegames/donations/metadata/version.go:30.3,32.3 1 3
+github.com/topfreegames/donations/metadata/version.go:36.18,38.3 1 2
+github.com/topfreegames/donations/metadata/version.go:38.3,39.35 1 2
+github.com/topfreegames/donations/metadata/version.go:39.35,41.4 1 1
