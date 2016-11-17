@@ -34,7 +34,7 @@ var _ = Describe("Game Handler", func() {
 	Describe("Create Donation Request", func() {
 		Describe("Feature", func() {
 			It("Should respond with donation request json after creation", func() {
-				game, err := GetTestGame(app.MongoDb, app.Logger)
+				game, err := GetTestGame(app.MongoDb, app.Logger, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				playerID := uuid.NewV4().String()
@@ -67,7 +67,7 @@ var _ = Describe("Game Handler", func() {
 	Describe("Donate", func() {
 		Describe("Feature", func() {
 			It("Should respond with donation json after creation", func() {
-				game, err := GetTestGame(app.MongoDb, app.Logger)
+				game, err := GetTestGame(app.MongoDb, app.Logger, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				donation, err := GetTestDonationRequest(game, app.MongoDb, app.Logger)

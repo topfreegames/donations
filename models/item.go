@@ -3,6 +3,8 @@ package models
 //go:generate easyjson -no_std_marshalers $GOFILE
 
 import (
+	"time"
+
 	"github.com/mailru/easyjson/jlexer"
 	"github.com/mailru/easyjson/jwriter"
 )
@@ -18,6 +20,8 @@ type Item struct {
 
 	//This weight counts for the donation cooldown limits of each player
 	WeightPerDonation int `json:"weightPerDonation" bson:"weightPerDonation"`
+
+	UpdatedAt time.Time `json:"updatedAt" bson:"updatedAt"`
 }
 
 //NewItem returns a configured new item
@@ -33,9 +37,11 @@ func NewItem(
 		WeightPerDonation:                 weightPerDonation,
 		LimitOfCardsPerPlayerDonation:     limitOfCardsPerPlayerDonation,
 		LimitOfCardsInEachDonationRequest: limitOfCardsInEachDonationRequest,
+		UpdatedAt:                         time.Now().UTC(),
 	}
 }
 
+//ToJSON of this struct
 func (i *Item) ToJSON() ([]byte, error) {
 	w := jwriter.Writer{}
 	i.MarshalEasyJSON(&w)

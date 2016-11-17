@@ -125,7 +125,6 @@ func CreateDonationHandler(app *App) func(c echo.Context) error {
 			return FailWith(400, err.Error(), c)
 		}
 
-		var status int
 		var donationRequest *models.DonationRequest
 		err = WithSegment("model", c, func() error {
 			donationRequest, err = models.GetDonationRequestByID(donationRequestID, app.MongoDb, app.Logger)
@@ -140,7 +139,7 @@ func CreateDonationHandler(app *App) func(c echo.Context) error {
 			return nil
 		})
 		if err != nil {
-			return FailWith(status, err.Error(), c)
+			return FailWith(500, err.Error(), c)
 		}
 
 		log.I(l, "Created new donation request successfully.", func(cm log.CM) {

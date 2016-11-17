@@ -128,7 +128,7 @@ var _ = Describe("Game Model", func() {
 	Describe("Getting a game by id", func() {
 		Describe("Feature", func() {
 			It("Should get an existent game by id", func() {
-				game, err := GetTestGame(db, logger)
+				game, err := GetTestGame(db, logger, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				dbGame, err := models.GetGameByID(game.ID, db, logger)
@@ -174,7 +174,7 @@ var _ = Describe("Game Model", func() {
 	Describe("Can add Items", func() {
 		Describe("Feature", func() {
 			It("Should add an item to a game", func() {
-				game, err := GetTestGame(db, logger)
+				game, err := GetTestGame(db, logger, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				key := uuid.NewV4().String()
@@ -200,7 +200,7 @@ var _ = Describe("Game Model", func() {
 			})
 
 			It("Should add multiple items to a game", func() {
-				game, err := GetTestGame(db, logger)
+				game, err := GetTestGame(db, logger, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				for i := 0; i < 10; i++ {
@@ -228,7 +228,7 @@ var _ = Describe("Game Model", func() {
 			})
 
 			It("Should overwrite item in a game", func() {
-				game, err := GetTestGame(db, logger)
+				game, err := GetTestGame(db, logger, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				key := uuid.NewV4().String()
@@ -258,7 +258,7 @@ var _ = Describe("Game Model", func() {
 			var err error
 			var meta map[string]interface{}
 			BeforeOnce(func() {
-				game, err = GetTestGame(db, logger)
+				game, err = GetTestGame(db, logger, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = game.Save(db, logger)

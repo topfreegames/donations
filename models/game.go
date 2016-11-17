@@ -3,6 +3,8 @@ package models
 //go:generate easyjson -no_std_marshalers $GOFILE
 
 import (
+	"time"
+
 	"github.com/mailru/easyjson/jlexer"
 	"github.com/mailru/easyjson/jwriter"
 	"github.com/topfreegames/donations/errors"
@@ -27,6 +29,8 @@ type Game struct {
 
 	// Cooldown a player must wait before doing his next donation request. Defaults to 8hs
 	DonationRequestCooldownHours int `json:"donationRequestCooldownHours" bson:"donationRequestCooldownHours"`
+
+	UpdatedAt time.Time `json:"updatedAt" bson:"updatedAt"`
 }
 
 //Save new game if no ID and updates it otherwise
@@ -49,6 +53,7 @@ func (g *Game) Save(db *mgo.Database, logger zap.Logger) error {
 			"items":                        g.Items,
 			"donationCooldownHours":        g.DonationCooldownHours,
 			"donationRequestCooldownHours": g.DonationRequestCooldownHours,
+			"updatedAt":                    time.Now().UTC(),
 		},
 	)
 

@@ -33,7 +33,7 @@ var _ = Describe("Game Handler", func() {
 
 	Describe("Update Game", func() {
 		It("Should update game if it exists", func() {
-			game, err := GetTestGame(app.MongoDb, app.Logger)
+			game, err := GetTestGame(app.MongoDb, app.Logger, true)
 			Expect(err).NotTo(HaveOccurred())
 			gameName := uuid.NewV4().String()
 			payload := &api.UpdateGamePayload{

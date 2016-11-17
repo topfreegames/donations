@@ -1,6 +1,8 @@
 package models_test
 
 import (
+	"time"
+
 	mgo "gopkg.in/mgo.v2"
 
 	. "github.com/onsi/ginkgo"
@@ -33,13 +35,8 @@ var _ = Describe("Donation Model", func() {
 	Describe("Creating a donation request", func() {
 		Describe("Feature", func() {
 			It("Should create a new donation request", func() {
-				game := models.NewGame(
-					uuid.NewV4().String(),
-					uuid.NewV4().String(),
-					1,
-					2,
-				)
-				err := game.Save(db, logger)
+				start := time.Now().UTC()
+				game, err := GetTestGame(db, logger, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				itemID := uuid.NewV4().String()
@@ -63,6 +60,8 @@ var _ = Describe("Donation Model", func() {
 				Expect(dbDonationRequest.Clan).To(Equal(clanID))
 				Expect(dbDonationRequest.Game).NotTo(BeNil())
 				Expect(dbDonationRequest.Game.ID).To(Equal(game.ID))
+				Expect(dbDonationRequest.CreatedAt.Unix()).To(BeNumerically(">", start.Unix()-10))
+				Expect(dbDonationRequest.UpdatedAt.Unix()).To(BeNumerically(">", start.Unix()-10))
 			})
 		})
 
@@ -185,7 +184,7 @@ var _ = Describe("Donation Model", func() {
 	Describe("Getting a donation request", func() {
 		Describe("Feature", func() {
 			It("Should get a donation request by id", func() {
-				game, err := GetTestGame(db, logger)
+				game, err := GetTestGame(db, logger, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				donationRequest, err := GetTestDonationRequest(game, db, logger)
@@ -205,7 +204,7 @@ var _ = Describe("Donation Model", func() {
 			var donationRequest *models.DonationRequest
 
 			BeforeOnce(func() {
-				game, err := GetTestGame(db, logger)
+				game, err := GetTestGame(db, logger, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				donationRequest, err = GetTestDonationRequest(game, db, logger)

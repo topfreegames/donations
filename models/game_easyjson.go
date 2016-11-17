@@ -58,6 +58,10 @@ func easyjson85f0d656DecodeGithubComTopfreegamesDonationsModels(in *jlexer.Lexer
 			out.DonationCooldownHours = int(in.Int())
 		case "donationRequestCooldownHours":
 			out.DonationRequestCooldownHours = int(in.Int())
+		case "updatedAt":
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.UpdatedAt).UnmarshalJSON(data))
+			}
 		default:
 			in.SkipRecursive()
 		}
@@ -114,6 +118,12 @@ func easyjson85f0d656EncodeGithubComTopfreegamesDonationsModels(out *jwriter.Wri
 	first = false
 	out.RawString("\"donationRequestCooldownHours\":")
 	out.Int(int(in.DonationRequestCooldownHours))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"updatedAt\":")
+	out.Raw((in.UpdatedAt).MarshalJSON())
 	out.RawByte('}')
 }
 

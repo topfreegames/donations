@@ -34,7 +34,7 @@ var _ = Describe("Game Handler", func() {
 	Describe("Create Item", func() {
 		Describe("Feature", func() {
 			It("Should respond with item json after creation", func() {
-				game, err := GetTestGame(app.MongoDb, app.Logger)
+				game, err := GetTestGame(app.MongoDb, app.Logger, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				itemID := uuid.NewV4().String()

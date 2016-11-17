@@ -58,6 +58,10 @@ func easyjsonA80d3b19DecodeGithubComTopfreegamesDonationsModels(in *jlexer.Lexer
 			out.LimitOfCardsPerPlayerDonation = int(in.Int())
 		case "weightPerDonation":
 			out.WeightPerDonation = int(in.Int())
+		case "updatedAt":
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.UpdatedAt).UnmarshalJSON(data))
+			}
 		default:
 			in.SkipRecursive()
 		}
@@ -118,6 +122,12 @@ func easyjsonA80d3b19EncodeGithubComTopfreegamesDonationsModels(out *jwriter.Wri
 	first = false
 	out.RawString("\"weightPerDonation\":")
 	out.Int(int(in.WeightPerDonation))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"updatedAt\":")
+	out.Raw((in.UpdatedAt).MarshalJSON())
 	out.RawByte('}')
 }
 

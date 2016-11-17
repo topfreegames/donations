@@ -4,6 +4,7 @@ package models
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/mailru/easyjson/jlexer"
 	"github.com/mailru/easyjson/jwriter"
@@ -30,6 +31,10 @@ type DonationRequest struct {
 	Clan      string     `json:"clan" bson:"clan"`
 	Game      *Game      `json:"game" bson:"game"`
 	Donations []Donation `json:"donations" bson:""`
+
+	CreatedAt  time.Time `json:"createdAt" bson:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt" bson:"updatedAt,omitempty"`
+	FinishedAt time.Time `json:"finishedAt" bson:"finishedAt,omitempty"`
 }
 
 //Create new donation request
@@ -40,6 +45,8 @@ func (d *DonationRequest) Create(db *mgo.Database, logger zap.Logger) error {
 	)
 
 	d.ID = bson.NewObjectId().Hex()
+	d.CreatedAt = time.Now().UTC()
+	d.UpdatedAt = time.Now().UTC()
 
 	log.D(l, "Saving donation request...")
 	err := GetDonationRequestsCollection(db).Insert(d)
@@ -71,10 +78,15 @@ func (d *DonationRequest) Donate(db *mgo.Database, player string, amount int, lo
 
 	log.D(l, "Saving donation...")
 	query := bson.M{"_id": d.ID}
-	update := bson.M{"$push": bson.M{"donations": bson.M{
-		"player": player,
-		"amount": amount,
-	}}}
+	update := bson.M{
+		"$set": bson.M{
+			"updatedAt": time.Now().UTC(),
+		},
+		"$push": bson.M{"donations": bson.M{
+			"player": player,
+			"amount": amount,
+		}},
+	}
 
 	err := GetDonationRequestsCollection(db).Update(query, update)
 	if err != nil {
