@@ -54,6 +54,26 @@ func easyjson85f0d656DecodeGithubComTopfreegamesDonationsModels(in *jlexer.Lexer
 				}
 				in.Delim('}')
 			}
+		case "items":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				in.Delim('{')
+				if !in.IsDelim('}') {
+					out.Items = make(map[string]Item)
+				} else {
+					out.Items = nil
+				}
+				for !in.IsDelim('}') {
+					key := string(in.String())
+					in.WantColon()
+					var v2 Item
+					(v2).UnmarshalEasyJSON(in)
+					(out.Items)[key] = v2
+					in.WantComma()
+				}
+				in.Delim('}')
+			}
 		default:
 			in.SkipRecursive()
 		}
@@ -86,19 +106,40 @@ func easyjson85f0d656EncodeGithubComTopfreegamesDonationsModels(out *jwriter.Wri
 		out.RawString(`null`)
 	} else {
 		out.RawByte('{')
-		v2First := true
-		for v2Name, v2Value := range in.Options {
-			if !v2First {
+		v3First := true
+		for v3Name, v3Value := range in.Options {
+			if !v3First {
 				out.RawByte(',')
 			}
-			v2First = false
-			out.String(string(v2Name))
+			v3First = false
+			out.String(string(v3Name))
 			out.RawByte(':')
-			if m, ok := v2Value.(json.Marshaler); ok {
+			if m, ok := v3Value.(json.Marshaler); ok {
 				out.Raw(m.MarshalJSON())
 			} else {
-				out.Raw(json.Marshal(v2Value))
+				out.Raw(json.Marshal(v3Value))
 			}
+		}
+		out.RawByte('}')
+	}
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"items\":")
+	if in.Items == nil {
+		out.RawString(`null`)
+	} else {
+		out.RawByte('{')
+		v4First := true
+		for v4Name, v4Value := range in.Items {
+			if !v4First {
+				out.RawByte(',')
+			}
+			v4First = false
+			out.String(string(v4Name))
+			out.RawByte(':')
+			(v4Value).MarshalEasyJSON(out)
 		}
 		out.RawByte('}')
 	}

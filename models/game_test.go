@@ -114,7 +114,7 @@ var _ = Describe("Game Model", func() {
 				})
 
 				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.05), "Operation shouldn't take this long.")
-			}, 200)
+			}, 500)
 
 			Measure("it should update games fast", func(b Benchmarker) {
 				i++
@@ -125,7 +125,7 @@ var _ = Describe("Game Model", func() {
 				})
 
 				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.05), "Operation shouldn't take this long.")
-			}, 200)
+			}, 500)
 		})
 	})
 
@@ -184,6 +184,100 @@ var _ = Describe("Game Model", func() {
 
 				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.05), "Operation shouldn't take this long.")
 			}, 200)
+		})
+	})
+
+	Describe("Can add Items", func() {
+		Describe("Feature", func() {
+			It("Should add an item to a game", func() {
+				game, err := GetTestGame(db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				key := uuid.NewV4().String()
+				meta := map[string]interface{}{"x": 1}
+				item, err := game.AddItem(key, meta, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(item.Key).To(Equal(key))
+				Expect(item.Metadata).To(BeEquivalentTo(meta))
+
+				dbGame, err := models.GetGameByID(game.ID, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dbGame.ID).To(Equal(game.ID))
+
+				Expect(dbGame.Items).To(HaveLen(1))
+				Expect(dbGame.Items[key].Key).To(Equal(key))
+				Expect(dbGame.Items[key].Metadata).To(BeEquivalentTo(meta))
+			})
+
+			It("Should add multiple items to a game", func() {
+				game, err := GetTestGame(db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				for i := 0; i < 10; i++ {
+					key := fmt.Sprintf("multiple-keys-test-%d", i)
+					meta := map[string]interface{}{"x": i}
+					item, err := game.AddItem(key, meta, db, logger)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(item).NotTo(BeNil())
+				}
+
+				dbGame, err := models.GetGameByID(game.ID, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dbGame.ID).To(Equal(game.ID))
+
+				Expect(dbGame.Items).To(HaveLen(10))
+				for i := 0; i < 10; i++ {
+					key := fmt.Sprintf("multiple-keys-test-%d", i)
+					meta := map[string]interface{}{"x": i}
+					Expect(dbGame.Items[key].Metadata).To(BeEquivalentTo(meta))
+				}
+			})
+
+			It("Should overwrite item in a game", func() {
+				game, err := GetTestGame(db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				key := uuid.NewV4().String()
+
+				meta := map[string]interface{}{"x": 1}
+				_, err = game.AddItem(key, meta, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				meta2 := map[string]interface{}{"x": 2}
+				_, err = game.AddItem(key, meta2, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				dbGame, err := models.GetGameByID(game.ID, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dbGame.ID).To(Equal(game.ID))
+
+				Expect(dbGame.Items[key].Metadata).To(BeEquivalentTo(meta2))
+			})
+		})
+
+		Describe("Measure", func() {
+			var game *models.Game
+			var err error
+			var meta map[string]interface{}
+			BeforeOnce(func() {
+				game, err = GetTestGame(db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = game.Save(db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				meta = map[string]interface{}{"x": 1}
+			})
+
+			Measure("it should add items fast", func(b Benchmarker) {
+				runtime := b.Time("runtime", func() {
+					_, err := game.AddItem(uuid.NewV4().String(), meta, db, logger)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.2), "Operation shouldn't take this long.")
+			}, 500)
 		})
 	})
 })

@@ -18,6 +18,7 @@ type Game struct {
 	ID      string                 `json:"id" bson:"_id,omitempty"`
 	Name    string                 `json:"name" bson:"name,omitempty"`
 	Options map[string]interface{} `json:"options" bson:"options,omitempty"`
+	Items   map[string]Item        `json:"items" bson:""`
 }
 
 //Save new game if no ID and updates it otherwise
@@ -38,6 +39,7 @@ func (g *Game) Save(db *mgo.Database, logger zap.Logger) error {
 			"_id":     g.ID,
 			"name":    g.Name,
 			"options": g.Options,
+			"items":   g.Items,
 		},
 	)
 
@@ -57,6 +59,17 @@ func (g *Game) Save(db *mgo.Database, logger zap.Logger) error {
 	})
 
 	return nil
+}
+
+//AddItem to this game
+func (g *Game) AddItem(key string, metadata map[string]interface{}, db *mgo.Database, logger zap.Logger) (*Item, error) {
+	item := NewItem(key, metadata)
+	g.Items[key] = *item
+	err := g.Save(db, logger)
+	if err != nil {
+		return nil, err
+	}
+	return item, nil
 }
 
 //ToJSON returns the game as JSON
@@ -80,6 +93,7 @@ func NewGame(name, id string, options map[string]interface{}) *Game {
 		Name:    name,
 		ID:      id,
 		Options: options,
+		Items:   map[string]Item{},
 	}
 }
 
