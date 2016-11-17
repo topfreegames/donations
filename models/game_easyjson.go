@@ -34,26 +34,6 @@ func easyjson85f0d656DecodeGithubComTopfreegamesDonationsModels(in *jlexer.Lexer
 			out.ID = string(in.String())
 		case "name":
 			out.Name = string(in.String())
-		case "options":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				in.Delim('{')
-				if !in.IsDelim('}') {
-					out.Options = make(map[string]interface{})
-				} else {
-					out.Options = nil
-				}
-				for !in.IsDelim('}') {
-					key := string(in.String())
-					in.WantColon()
-					var v1 interface{}
-					v1 = in.Interface()
-					(out.Options)[key] = v1
-					in.WantComma()
-				}
-				in.Delim('}')
-			}
 		case "items":
 			if in.IsNull() {
 				in.Skip()
@@ -67,9 +47,9 @@ func easyjson85f0d656DecodeGithubComTopfreegamesDonationsModels(in *jlexer.Lexer
 				for !in.IsDelim('}') {
 					key := string(in.String())
 					in.WantColon()
-					var v2 Item
-					(v2).UnmarshalEasyJSON(in)
-					(out.Items)[key] = v2
+					var v1 Item
+					(v1).UnmarshalEasyJSON(in)
+					(out.Items)[key] = v1
 					in.WantComma()
 				}
 				in.Delim('}')
@@ -101,45 +81,20 @@ func easyjson85f0d656EncodeGithubComTopfreegamesDonationsModels(out *jwriter.Wri
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"options\":")
-	if in.Options == nil {
-		out.RawString(`null`)
-	} else {
-		out.RawByte('{')
-		v3First := true
-		for v3Name, v3Value := range in.Options {
-			if !v3First {
-				out.RawByte(',')
-			}
-			v3First = false
-			out.String(string(v3Name))
-			out.RawByte(':')
-			if m, ok := v3Value.(json.Marshaler); ok {
-				out.Raw(m.MarshalJSON())
-			} else {
-				out.Raw(json.Marshal(v3Value))
-			}
-		}
-		out.RawByte('}')
-	}
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
 	out.RawString("\"items\":")
 	if in.Items == nil {
 		out.RawString(`null`)
 	} else {
 		out.RawByte('{')
-		v4First := true
-		for v4Name, v4Value := range in.Items {
-			if !v4First {
+		v2First := true
+		for v2Name, v2Value := range in.Items {
+			if !v2First {
 				out.RawByte(',')
 			}
-			v4First = false
-			out.String(string(v4Name))
+			v2First = false
+			out.String(string(v2Name))
 			out.RawByte(':')
-			(v4Value).MarshalEasyJSON(out)
+			(v2Value).MarshalEasyJSON(out)
 		}
 		out.RawByte('}')
 	}

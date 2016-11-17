@@ -11,7 +11,7 @@ import (
 
 //GetTestGame to use in tests
 func GetTestGame(db *mgo.Database, logger zap.Logger) (*models.Game, error) {
-	game := models.NewGame(uuid.NewV4().String(), uuid.NewV4().String(), map[string]interface{}{"x": 1})
+	game := models.NewGame(uuid.NewV4().String(), uuid.NewV4().String())
 	err := game.Save(db, logger)
 	return game, err
 }

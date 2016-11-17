@@ -46,7 +46,7 @@ func CreateGameHandler(app *App) func(c echo.Context) error {
 			return FailWith(409, msg, c)
 		}
 
-		game := models.NewGame(payload.Name, payload.ID, payload.Options)
+		game := models.NewGame(payload.Name, payload.ID)
 		err = game.Save(app.MongoDb, app.Logger)
 		if err != nil {
 			log.E(l, "Failed to save game!", func(cm log.CM) {
@@ -100,10 +100,9 @@ func UpdateGameHandler(app *App) func(c echo.Context) error {
 				return FailWith(500, err.Error(), c)
 			}
 			log.D(l, "Game not found, creating new game...")
-			game = models.NewGame(payload.Name, gameID, payload.Options)
+			game = models.NewGame(payload.Name, gameID)
 		} else {
 			game.Name = payload.Name
-			game.Options = payload.Options
 		}
 
 		err = game.Save(app.MongoDb, app.Logger)

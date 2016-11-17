@@ -15,10 +15,9 @@ import (
 //Game represents each game in UR
 //easyjson:json
 type Game struct {
-	ID      string                 `json:"id" bson:"_id,omitempty"`
-	Name    string                 `json:"name" bson:"name,omitempty"`
-	Options map[string]interface{} `json:"options" bson:"options,omitempty"`
-	Items   map[string]Item        `json:"items" bson:""`
+	ID    string          `json:"id" bson:"_id,omitempty"`
+	Name  string          `json:"name" bson:"name,omitempty"`
+	Items map[string]Item `json:"items" bson:""`
 }
 
 //Save new game if no ID and updates it otherwise
@@ -36,10 +35,9 @@ func (g *Game) Save(db *mgo.Database, logger zap.Logger) error {
 	info, err := GetGamesCollection(db).Upsert(
 		M{"_id": g.ID},
 		M{
-			"_id":     g.ID,
-			"name":    g.Name,
-			"options": g.Options,
-			"items":   g.Items,
+			"_id":   g.ID,
+			"name":  g.Name,
+			"items": g.Items,
 		},
 	)
 
@@ -88,12 +86,11 @@ func GetGameFromJSON(data []byte) (*Game, error) {
 }
 
 //NewGame returns a new instance of Game
-func NewGame(name, id string, options map[string]interface{}) *Game {
+func NewGame(name, id string) *Game {
 	return &Game{
-		Name:    name,
-		ID:      id,
-		Options: options,
-		Items:   map[string]Item{},
+		Name:  name,
+		ID:    id,
+		Items: map[string]Item{},
 	}
 }
 

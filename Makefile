@@ -53,7 +53,7 @@ run: services
 run-basic: services
 	@go run main.go start --fast -d -c ./config/basicAuth.yaml
 
-test: update-version mongo-local-shutdown test-services test-migrate test-run
+test: update-version mongo-local-shutdown test-services test-migrate test-run test-coverage-func
 
 test-run:
 	@ginkgo --cover -r .
@@ -68,7 +68,7 @@ test-coverage-html: test-coverage
 	@go tool cover -html=_build/test-coverage-all.out
 
 test-coverage-func: test-coverage
-	@go tool cover -func=_build/test-coverage-all.out
+	@go tool cover -func=_build/test-coverage-all.out | egrep -v "100\.0\%"
 
 test-services: docker-services-local
 	@echo "Required test services are up."

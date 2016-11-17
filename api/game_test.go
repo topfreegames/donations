@@ -49,7 +49,6 @@ var _ = Describe("Game Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(game.ID).To(Equal(id))
 			Expect(game.Name).To(Equal(gameName))
-			Expect(game.Options).To(HaveLen(0))
 		})
 
 		It("Should fail if game with same ID already exists", func() {
@@ -87,8 +86,7 @@ var _ = Describe("Game Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 			gameName := uuid.NewV4().String()
 			payload := &api.UpdateGamePayload{
-				Name:    gameName,
-				Options: map[string]interface{}{"y": 1},
+				Name: gameName,
 			}
 			jsonPayload, err := payload.ToJSON()
 			Expect(err).NotTo(HaveOccurred())
@@ -99,15 +97,13 @@ var _ = Describe("Game Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rGame.ID).To(Equal(game.ID))
 			Expect(rGame.Name).To(Equal(gameName))
-			Expect(rGame.Options).To(HaveKey("y"))
 		})
 
 		It("Should create game if it does not exist", func() {
 			id := uuid.NewV4().String()
 			gameName := uuid.NewV4().String()
 			payload := &api.UpdateGamePayload{
-				Name:    gameName,
-				Options: map[string]interface{}{"x": 1},
+				Name: gameName,
 			}
 			jsonPayload, err := payload.ToJSON()
 			Expect(err).NotTo(HaveOccurred())
@@ -118,7 +114,6 @@ var _ = Describe("Game Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rGame.ID).To(Equal(id))
 			Expect(rGame.Name).To(Equal(gameName))
-			Expect(rGame.Options).To(HaveKey("x"))
 		})
 	})
 })

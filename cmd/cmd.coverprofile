@@ -1,6 +1,0 @@
-mode: atomic
-github.com/topfreegames/donations/cmd/root.go:20.34,21.38 1 1
-github.com/topfreegames/donations/cmd/root.go:21.38,23.3 1 1
-github.com/topfreegames/donations/cmd/root.go:26.13,31.2 1 1
-github.com/topfreegames/donations/cmd/version.go:15.47,17.3 1 1
-github.com/topfreegames/donations/cmd/version.go:20.13,22.2 1 1

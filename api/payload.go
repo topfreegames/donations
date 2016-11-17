@@ -80,9 +80,8 @@ func logPayloadErrors(l zap.Logger, errors []string) {
 
 //CreateGamePayload maps the payload for the Create Game route
 type CreateGamePayload struct {
-	Name    string                 `json:"name"`
-	ID      string                 `json:"id"`
-	Options map[string]interface{} `json:"options"`
+	Name string `json:"name"`
+	ID   string `json:"id"`
 }
 
 //Validate all the required fields for creating a game
@@ -90,7 +89,6 @@ func (cgp *CreateGamePayload) Validate() []string {
 	v := NewValidation()
 	v.validateRequiredString("name", cgp.Name)
 	v.validateRequiredString("id", cgp.ID)
-	v.validateRequired("options", cgp.Options)
 	return v.Errors()
 }
 
@@ -103,15 +101,13 @@ func (cgp *CreateGamePayload) ToJSON() ([]byte, error) {
 
 //UpdateGamePayload maps the payload for the Create Game route
 type UpdateGamePayload struct {
-	Name    string                 `json:"name"`
-	Options map[string]interface{} `json:"options"`
+	Name string `json:"name"`
 }
 
 //Validate all the required fields for updating a game
 func (ugp *UpdateGamePayload) Validate() []string {
 	v := NewValidation()
 	v.validateRequiredString("name", ugp.Name)
-	v.validateRequired("options", ugp.Options)
 	return v.Errors()
 }
 

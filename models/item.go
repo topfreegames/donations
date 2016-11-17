@@ -22,7 +22,6 @@ func NewItem(key string, metadata map[string]interface{}) *Item {
 	}
 }
 
-//ToJSON returns the game as JSON
 func (i *Item) ToJSON() ([]byte, error) {
 	w := jwriter.Writer{}
 	i.MarshalEasyJSON(&w)

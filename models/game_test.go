@@ -38,7 +38,6 @@ var _ = Describe("Game Model", func() {
 				game := models.NewGame(
 					uuid.NewV4().String(),
 					uuid.NewV4().String(),
-					map[string]interface{}{"x": 1},
 				)
 				err := game.Save(db, logger)
 				Expect(err).NotTo(HaveOccurred())
@@ -49,14 +48,12 @@ var _ = Describe("Game Model", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(dbGame.Name).To(Equal(game.Name))
 				Expect(dbGame.ID).To(Equal(game.ID))
-				Expect(dbGame.Options).To(BeEquivalentTo(game.Options))
 			})
 
 			It("Should update an existing game", func() {
 				game := models.NewGame(
 					uuid.NewV4().String(),
 					uuid.NewV4().String(),
-					map[string]interface{}{"x": 1},
 				)
 				err := game.Save(db, logger)
 				Expect(err).NotTo(HaveOccurred())
@@ -74,7 +71,6 @@ var _ = Describe("Game Model", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(dbGame.Name).To(Equal(newName))
 				Expect(dbGame.ID).To(Equal(game.ID))
-				Expect(dbGame.Options).To(BeEquivalentTo(game.Options))
 			})
 		})
 		Describe("Measure", func() {
@@ -84,19 +80,6 @@ var _ = Describe("Game Model", func() {
 				game = models.NewGame(
 					uuid.NewV4().String(),
 					uuid.NewV4().String(),
-					map[string]interface{}{
-						"a": 1,
-						"b": 1,
-						"c": 1,
-						"d": 1,
-						"e": 1,
-						"f": 1,
-						"g": 1,
-						"h": 1,
-						"i": 1,
-						"j": 1,
-						"k": 1,
-					},
 				)
 				err := game.Save(db, logger)
 				Expect(err).NotTo(HaveOccurred())
@@ -107,24 +90,23 @@ var _ = Describe("Game Model", func() {
 					game := models.NewGame(
 						uuid.NewV4().String(),
 						uuid.NewV4().String(),
-						map[string]interface{}{"x": 1},
 					)
 					err := game.Save(db, logger)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.05), "Operation shouldn't take this long.")
+				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.5), "Operation shouldn't take this long.")
 			}, 500)
 
 			Measure("it should update games fast", func(b Benchmarker) {
 				i++
 				runtime := b.Time("runtime", func() {
-					game.Options["x"] = i
+					game.Name = fmt.Sprintf("game-%d", i)
 					err := game.Save(db, logger)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.05), "Operation shouldn't take this long.")
+				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.5), "Operation shouldn't take this long.")
 			}, 500)
 		})
 	})
@@ -139,7 +121,6 @@ var _ = Describe("Game Model", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(dbGame.ID).To(Equal(game.ID))
 				Expect(dbGame.Name).To(Equal(game.Name))
-				Expect(dbGame.Options).To(BeEquivalentTo(game.Options))
 			})
 
 			It("Should not get an unexistent game by public id", func() {
@@ -157,19 +138,6 @@ var _ = Describe("Game Model", func() {
 				game = models.NewGame(
 					uuid.NewV4().String(),
 					uuid.NewV4().String(),
-					map[string]interface{}{
-						"a": 1,
-						"b": 1,
-						"c": 1,
-						"d": 1,
-						"e": 1,
-						"f": 1,
-						"g": 1,
-						"h": 1,
-						"i": 1,
-						"j": 1,
-						"k": 1,
-					},
 				)
 				err := game.Save(db, logger)
 				Expect(err).NotTo(HaveOccurred())
@@ -182,7 +150,7 @@ var _ = Describe("Game Model", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.05), "Operation shouldn't take this long.")
+				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.5), "Operation shouldn't take this long.")
 			}, 200)
 		})
 	})

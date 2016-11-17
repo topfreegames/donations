@@ -36,7 +36,6 @@ var _ = Describe("Donation Model", func() {
 				game := models.NewGame(
 					uuid.NewV4().String(),
 					uuid.NewV4().String(),
-					map[string]interface{}{"x": 1},
 				)
 				err := game.Save(db, logger)
 				Expect(err).NotTo(HaveOccurred())
@@ -71,9 +70,6 @@ var _ = Describe("Donation Model", func() {
 				game = models.NewGame(
 					uuid.NewV4().String(),
 					uuid.NewV4().String(),
-					map[string]interface{}{
-						"a": 1,
-					},
 				)
 				err := game.Save(db, logger)
 				Expect(err).NotTo(HaveOccurred())
@@ -94,7 +90,7 @@ var _ = Describe("Donation Model", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.05), "Operation shouldn't take this long.")
+				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.5), "Operation shouldn't take this long.")
 			}, 500)
 		})
 	})
@@ -105,7 +101,6 @@ var _ = Describe("Donation Model", func() {
 				game := models.NewGame(
 					uuid.NewV4().String(),
 					uuid.NewV4().String(),
-					map[string]interface{}{"x": 1},
 				)
 				err := game.Save(db, logger)
 				Expect(err).NotTo(HaveOccurred())
@@ -145,9 +140,6 @@ var _ = Describe("Donation Model", func() {
 				game = models.NewGame(
 					uuid.NewV4().String(),
 					uuid.NewV4().String(),
-					map[string]interface{}{
-						"a": 1,
-					},
 				)
 				err := game.Save(db, logger)
 				Expect(err).NotTo(HaveOccurred())
@@ -177,7 +169,7 @@ var _ = Describe("Donation Model", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.05), "Operation shouldn't take this long.")
+				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.5), "Operation shouldn't take this long.")
 			}, 500)
 		})
 	})
@@ -218,7 +210,7 @@ var _ = Describe("Donation Model", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.05), "Operation shouldn't take this long.")
+				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.5), "Operation shouldn't take this long.")
 			}, 500)
 		})
 	})

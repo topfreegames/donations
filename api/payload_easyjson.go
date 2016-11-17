@@ -148,26 +148,6 @@ func easyjsonA8a797f8DecodeGithubComTopfreegamesDonationsApi2(in *jlexer.Lexer, 
 		switch key {
 		case "name":
 			out.Name = string(in.String())
-		case "options":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				in.Delim('{')
-				if !in.IsDelim('}') {
-					out.Options = make(map[string]interface{})
-				} else {
-					out.Options = nil
-				}
-				for !in.IsDelim('}') {
-					key := string(in.String())
-					in.WantColon()
-					var v1 interface{}
-					v1 = in.Interface()
-					(out.Options)[key] = v1
-					in.WantComma()
-				}
-				in.Delim('}')
-			}
 		default:
 			in.SkipRecursive()
 		}
@@ -185,31 +165,6 @@ func easyjsonA8a797f8EncodeGithubComTopfreegamesDonationsApi2(out *jwriter.Write
 	first = false
 	out.RawString("\"name\":")
 	out.String(string(in.Name))
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"options\":")
-	if in.Options == nil {
-		out.RawString(`null`)
-	} else {
-		out.RawByte('{')
-		v2First := true
-		for v2Name, v2Value := range in.Options {
-			if !v2First {
-				out.RawByte(',')
-			}
-			v2First = false
-			out.String(string(v2Name))
-			out.RawByte(':')
-			if m, ok := v2Value.(json.Marshaler); ok {
-				out.Raw(m.MarshalJSON())
-			} else {
-				out.Raw(json.Marshal(v2Value))
-			}
-		}
-		out.RawByte('}')
-	}
 	out.RawByte('}')
 }
 
@@ -241,26 +196,6 @@ func easyjsonA8a797f8DecodeGithubComTopfreegamesDonationsApi3(in *jlexer.Lexer, 
 			out.Name = string(in.String())
 		case "id":
 			out.ID = string(in.String())
-		case "options":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				in.Delim('{')
-				if !in.IsDelim('}') {
-					out.Options = make(map[string]interface{})
-				} else {
-					out.Options = nil
-				}
-				for !in.IsDelim('}') {
-					key := string(in.String())
-					in.WantColon()
-					var v3 interface{}
-					v3 = in.Interface()
-					(out.Options)[key] = v3
-					in.WantComma()
-				}
-				in.Delim('}')
-			}
 		default:
 			in.SkipRecursive()
 		}
@@ -284,31 +219,6 @@ func easyjsonA8a797f8EncodeGithubComTopfreegamesDonationsApi3(out *jwriter.Write
 	first = false
 	out.RawString("\"id\":")
 	out.String(string(in.ID))
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"options\":")
-	if in.Options == nil {
-		out.RawString(`null`)
-	} else {
-		out.RawByte('{')
-		v4First := true
-		for v4Name, v4Value := range in.Options {
-			if !v4First {
-				out.RawByte(',')
-			}
-			v4First = false
-			out.String(string(v4Name))
-			out.RawByte(':')
-			if m, ok := v4Value.(json.Marshaler); ok {
-				out.Raw(m.MarshalJSON())
-			} else {
-				out.Raw(json.Marshal(v4Value))
-			}
-		}
-		out.RawByte('}')
-	}
 	out.RawByte('}')
 }
 
