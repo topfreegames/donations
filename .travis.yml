@@ -14,6 +14,7 @@ services:
   - docker
 
 install:
+ - go get github.com/mattn/goveralls
  - make setup
 
 before_script:

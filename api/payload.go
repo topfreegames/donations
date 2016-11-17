@@ -161,3 +161,22 @@ func (dp *DonationPayload) ToJSON() ([]byte, error) {
 	dp.MarshalEasyJSON(&w)
 	return w.BuildBytes()
 }
+
+//UpsertItemPayload maps the payload for the Upsert Item route
+type UpsertItemPayload struct {
+	Metadata map[string]interface{} `json:"metadata"`
+}
+
+//Validate all the required fields for creating a game
+func (uip *UpsertItemPayload) Validate() []string {
+	v := NewValidation()
+	v.validateRequiredMap("amount", uip.Metadata)
+	return v.Errors()
+}
+
+//ToJSON returns the payload as JSON
+func (uip *UpsertItemPayload) ToJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	uip.MarshalEasyJSON(&w)
+	return w.BuildBytes()
+}

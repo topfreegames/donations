@@ -168,57 +168,6 @@ func (app *App) OnErrorHandler(err error, stack []byte) {
 	raven.CaptureError(e, tags)
 }
 
-func (app *App) configureApplication() error {
-	l := app.Logger.With(
-		zap.String("operation", "configureApplication"),
-	)
-
-	l.Debug("Configuring Application...")
-	addr := fmt.Sprintf("%s:%d", app.Host, app.Port)
-	if app.Fast {
-		app.Engine = fasthttp.New(addr)
-	} else {
-		app.Engine = standard.New(addr)
-	}
-	app.App = echo.New()
-	a := app.App
-
-	_, w, _ := os.Pipe()
-	a.SetLogOutput(w)
-
-	basicAuthUser := app.Config.GetString("api.basicAuth.user")
-	if basicAuthUser != "" {
-		basicAuthPass := app.Config.GetString("api.basicAuth.pass")
-
-		a.Use(middleware.BasicAuth(func(username, password string) bool {
-			return username == basicAuthUser && password == basicAuthPass
-		}))
-	}
-
-	//NewRelicMiddleware has to stand out from all others
-	a.Use(NewNewRelicMiddleware(app, app.Logger).Serve)
-
-	a.Use(NewRecoveryMiddleware(app.OnErrorHandler).Serve)
-	a.Use(NewVersionMiddleware().Serve)
-	a.Use(NewSentryMiddleware(app).Serve)
-	a.Use(NewLoggerMiddleware(app.Logger).Serve)
-	a.Use(NewBodyExtractionMiddleware().Serve)
-
-	a.Get("/healthcheck", HealthCheckHandler(app))
-
-	a.Post("/games", CreateGameHandler(app))
-	a.Put("/games/:gameID", UpdateGameHandler(app))
-
-	a.Post("/games/:gameID/donation-requests/", CreateDonationRequestHandler(app))
-	a.Post("/games/:gameID/donation-requests/:donationRequestID/", CreateDonationHandler(app))
-
-	app.configureMongoDB()
-
-	l.Debug("Application configured successfully.")
-
-	return nil
-}
-
 func (app *App) configureMongoDB() error {
 	l := app.Logger.With(
 		zap.String("operation", "configureMongoDB"),
@@ -259,4 +208,65 @@ func (app *App) Start() {
 //Stop app running routines
 func (app *App) Stop() {
 	app.MongoSession.Close()
+}
+
+func (app *App) configureApplication() error {
+	l := app.Logger.With(
+		zap.String("operation", "configureApplication"),
+	)
+
+	l.Debug("Configuring Application...")
+	addr := fmt.Sprintf("%s:%d", app.Host, app.Port)
+	if app.Fast {
+		app.Engine = fasthttp.New(addr)
+	} else {
+		app.Engine = standard.New(addr)
+	}
+	app.App = echo.New()
+	a := app.App
+
+	_, w, _ := os.Pipe()
+	a.SetLogOutput(w)
+
+	basicAuthUser := app.Config.GetString("api.basicAuth.user")
+	if basicAuthUser != "" {
+		basicAuthPass := app.Config.GetString("api.basicAuth.pass")
+
+		a.Use(middleware.BasicAuth(func(username, password string) bool {
+			return username == basicAuthUser && password == basicAuthPass
+		}))
+	}
+
+	a.Pre(middleware.RemoveTrailingSlash())
+
+	//NewRelicMiddleware has to stand out from all others
+	a.Use(NewNewRelicMiddleware(app, app.Logger).Serve)
+
+	a.Use(NewRecoveryMiddleware(app.OnErrorHandler).Serve)
+	a.Use(NewVersionMiddleware().Serve)
+	a.Use(NewSentryMiddleware(app).Serve)
+	a.Use(NewLoggerMiddleware(app.Logger).Serve)
+	a.Use(NewBodyExtractionMiddleware().Serve)
+
+	a.Get("/healthcheck", HealthCheckHandler(app))
+
+	//Games Routes
+	//TODO: Get Game Details
+	a.Post("/games", CreateGameHandler(app))
+	a.Put("/games/:gameID", UpdateGameHandler(app))
+
+	//Items Routes
+	a.Put("/games/:gameID/items/:itemKey", UpsertItemHandler(app))
+
+	//Donation Requests routes
+	a.Post("/games/:gameID/donation-requests", CreateDonationRequestHandler(app))
+
+	//Donations routes
+	a.Post("/games/:gameID/donation-requests/:donationRequestID", CreateDonationHandler(app))
+
+	app.configureMongoDB()
+
+	l.Debug("Application configured successfully.")
+
+	return nil
 }
