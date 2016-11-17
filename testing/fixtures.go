@@ -38,12 +38,21 @@ func GetTestGame(db *mgo.Database, logger zap.Logger, withItems bool) (*models.G
 func GetTestDonationRequest(game *models.Game, db *mgo.Database, logger zap.Logger) (*models.DonationRequest, error) {
 	donationRequest := models.NewDonationRequest(
 		game,
-		uuid.NewV4().String(),
+		GetFirstItem(game).Key,
 		uuid.NewV4().String(),
 		uuid.NewV4().String(),
 	)
 	err := donationRequest.Create(db, logger)
 	return donationRequest, err
+}
+
+//GetFirstItemInGame
+func GetFirstItem(g *models.Game) *models.Item {
+	for _, v := range g.Items {
+		return &v
+	}
+
+	return nil
 }
 
 //ToNullInt64 returns valid if int > 0

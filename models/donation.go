@@ -44,6 +44,27 @@ func (d *DonationRequest) Create(db *mgo.Database, logger zap.Logger) error {
 		zap.String("operation", "Save"),
 	)
 
+	if d.Game == nil {
+		return &errors.ParameterIsRequiredError{
+			Parameter: "Game",
+			Model:     "DonationRequest",
+		}
+	}
+
+	if d.Item == "" {
+		return &errors.ParameterIsRequiredError{
+			Parameter: "Item",
+			Model:     "DonationRequest",
+		}
+	}
+
+	if _, ok := d.Game.Items[d.Item]; !ok {
+		return &errors.ItemNotFoundInGameError{
+			ItemKey: d.Item,
+			GameID:  d.Game.ID,
+		}
+	}
+
 	d.ID = bson.NewObjectId().Hex()
 	d.CreatedAt = time.Now().UTC()
 	d.UpdatedAt = time.Now().UTC()

@@ -38,7 +38,7 @@ var _ = Describe("Game Handler", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				playerID := uuid.NewV4().String()
-				itemID := uuid.NewV4().String()
+				itemID := GetFirstItem(game).Key
 				clanID := uuid.NewV4().String()
 				payload := &api.CreateDonationRequestPayload{
 					Player: playerID,

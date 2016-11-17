@@ -20,3 +20,25 @@ func NewDocumentNotFoundError(collection string, id string) *DocumentNotFoundErr
 func (err DocumentNotFoundError) Error() string {
 	return fmt.Sprintf("Document with id %s was not found in collection %s.", err.ID, err.Collection)
 }
+
+//ParameterIsRequiredError happens when a parameter for a given instance to be saved is required but is empty
+type ParameterIsRequiredError struct {
+	Parameter string
+	Model     string
+}
+
+//Error string
+func (err ParameterIsRequiredError) Error() string {
+	return fmt.Sprintf("%s is required to create a new %s", err.Parameter, err.Model)
+}
+
+//ItemNotFoundInGameError happens when a donation happens for an item that's not in the game
+type ItemNotFoundInGameError struct {
+	ItemKey string
+	GameID  string
+}
+
+//Error string
+func (err ItemNotFoundInGameError) Error() string {
+	return fmt.Sprintf("Item %s was not found in game %s", err.ItemKey, err.GameID)
+}

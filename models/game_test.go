@@ -273,7 +273,7 @@ var _ = Describe("Game Model", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.2), "Operation shouldn't take this long.")
+				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.5), "Operation shouldn't take this long.")
 			}, 500)
 		})
 	})

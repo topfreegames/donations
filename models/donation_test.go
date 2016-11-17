@@ -1,6 +1,7 @@
 package models_test
 
 import (
+	"fmt"
 	"time"
 
 	mgo "gopkg.in/mgo.v2"
@@ -39,12 +40,12 @@ var _ = Describe("Donation Model", func() {
 				game, err := GetTestGame(db, logger, true)
 				Expect(err).NotTo(HaveOccurred())
 
-				itemID := uuid.NewV4().String()
+				itemKey := GetFirstItem(game).Key
 				playerID := uuid.NewV4().String()
 				clanID := uuid.NewV4().String()
 				donationRequest := models.NewDonationRequest(
 					game,
-					itemID,
+					itemKey,
 					playerID,
 					clanID,
 				)
@@ -55,7 +56,7 @@ var _ = Describe("Donation Model", func() {
 				c := models.GetDonationRequestsCollection(db)
 				err = c.FindId(donationRequest.ID).One(&dbDonationRequest)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(dbDonationRequest.Item).To(Equal(itemID))
+				Expect(dbDonationRequest.Item).To(Equal(itemKey))
 				Expect(dbDonationRequest.Player).To(Equal(playerID))
 				Expect(dbDonationRequest.Clan).To(Equal(clanID))
 				Expect(dbDonationRequest.Game).NotTo(BeNil())
@@ -63,29 +64,59 @@ var _ = Describe("Donation Model", func() {
 				Expect(dbDonationRequest.CreatedAt.Unix()).To(BeNumerically(">", start.Unix()-10))
 				Expect(dbDonationRequest.UpdatedAt.Unix()).To(BeNumerically(">", start.Unix()-10))
 			})
+
+			It("Should fail to create a new donation request without a game", func() {
+				itemID := uuid.NewV4().String()
+				playerID := uuid.NewV4().String()
+				clanID := uuid.NewV4().String()
+				donationRequest := models.NewDonationRequest(
+					nil,
+					itemID,
+					playerID,
+					clanID,
+				)
+				err := donationRequest.Create(db, logger)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Game is required to create a new DonationRequest"))
+			})
+
+			It("Should fail to create a new donation request with invalid item", func() {
+				game, err := GetTestGame(db, logger, true)
+				Expect(err).NotTo(HaveOccurred())
+
+				itemID := uuid.NewV4().String()
+				playerID := uuid.NewV4().String()
+				clanID := uuid.NewV4().String()
+				donationRequest := models.NewDonationRequest(
+					game,
+					itemID,
+					playerID,
+					clanID,
+				)
+				err = donationRequest.Create(db, logger)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring(
+					fmt.Sprintf("Item %s was not found in game %s", itemID, game.ID),
+				))
+			})
 		})
 
 		Describe("Measure", func() {
 			var game *models.Game
+			var err error
 			BeforeOnce(func() {
-				game = models.NewGame(
-					uuid.NewV4().String(),
-					uuid.NewV4().String(),
-					1,
-					2,
-				)
-				err := game.Save(db, logger)
+				game, err = GetTestGame(db, logger, true)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			Measure("it should create donation requests fast", func(b Benchmarker) {
 				runtime := b.Time("runtime", func() {
-					itemID := uuid.NewV4().String()
+					itemKey := GetFirstItem(game).Key
 					playerID := uuid.NewV4().String()
 					clanID := uuid.NewV4().String()
 					donationRequest := models.NewDonationRequest(
 						game,
-						itemID,
+						itemKey,
 						playerID,
 						clanID,
 					)
@@ -101,16 +132,10 @@ var _ = Describe("Donation Model", func() {
 	Describe("Donating an item", func() {
 		Describe("Feature", func() {
 			It("Should append a new donation", func() {
-				game := models.NewGame(
-					uuid.NewV4().String(),
-					uuid.NewV4().String(),
-					1,
-					2,
-				)
-				err := game.Save(db, logger)
+				game, err := GetTestGame(db, logger, true)
 				Expect(err).NotTo(HaveOccurred())
 
-				itemID := uuid.NewV4().String()
+				itemID := GetFirstItem(game).Key
 				playerID := uuid.NewV4().String()
 				clanID := uuid.NewV4().String()
 				donationRequest := models.NewDonationRequest(
@@ -140,18 +165,13 @@ var _ = Describe("Donation Model", func() {
 		Describe("Measure", func() {
 			var game *models.Game
 			var donationRequest *models.DonationRequest
+			var err error
 
 			BeforeOnce(func() {
-				game = models.NewGame(
-					uuid.NewV4().String(),
-					uuid.NewV4().String(),
-					1,
-					2,
-				)
-				err := game.Save(db, logger)
+				game, err = GetTestGame(db, logger, true)
 				Expect(err).NotTo(HaveOccurred())
 
-				itemID := uuid.NewV4().String()
+				itemID := GetFirstItem(game).Key
 				playerID := uuid.NewV4().String()
 				clanID := uuid.NewV4().String()
 				donationRequest = models.NewDonationRequest(
