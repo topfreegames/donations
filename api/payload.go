@@ -78,36 +78,19 @@ func logPayloadErrors(l zap.Logger, errors []string) {
 	})
 }
 
-//CreateGamePayload maps the payload for the Create Game route
-type CreateGamePayload struct {
-	Name string `json:"name"`
-	ID   string `json:"id"`
-}
-
-//Validate all the required fields for creating a game
-func (cgp *CreateGamePayload) Validate() []string {
-	v := NewValidation()
-	v.validateRequiredString("name", cgp.Name)
-	v.validateRequiredString("id", cgp.ID)
-	return v.Errors()
-}
-
-//ToJSON returns the payload as JSON
-func (cgp *CreateGamePayload) ToJSON() ([]byte, error) {
-	w := jwriter.Writer{}
-	cgp.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
 //UpdateGamePayload maps the payload for the Create Game route
 type UpdateGamePayload struct {
-	Name string `json:"name"`
+	Name                         string `json:"name"`
+	DonationCooldownHours        int    `json:"donationCooldownHours" bson:"donationCooldownHours"`
+	DonationRequestCooldownHours int    `json:"donationRequestCooldownHours" bson:"donationRequestCooldownHours"`
 }
 
 //Validate all the required fields for updating a game
 func (ugp *UpdateGamePayload) Validate() []string {
 	v := NewValidation()
 	v.validateRequiredString("name", ugp.Name)
+	v.validateRequiredInt("donationCooldownHours", ugp.DonationCooldownHours)
+	v.validateRequiredInt("donationRequestCooldownHours", ugp.DonationRequestCooldownHours)
 	return v.Errors()
 }
 
@@ -164,13 +147,19 @@ func (dp *DonationPayload) ToJSON() ([]byte, error) {
 
 //UpsertItemPayload maps the payload for the Upsert Item route
 type UpsertItemPayload struct {
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata                          map[string]interface{} `json:"metadata"`
+	WeightPerDonation                 int                    `json:"weightPerDonation"`
+	LimitOfCardsPerPlayerDonation     int                    `json:"limitOfCardsPerPlayerDonation"`
+	LimitOfCardsInEachDonationRequest int                    `json:"limitOfCardsInEachDonationRequest"`
 }
 
 //Validate all the required fields for creating a game
 func (uip *UpsertItemPayload) Validate() []string {
 	v := NewValidation()
 	v.validateRequiredMap("amount", uip.Metadata)
+	v.validateRequiredInt("weightPerDonation", uip.WeightPerDonation)
+	v.validateRequiredInt("limitOfCardsPerPlayerDonation", uip.LimitOfCardsPerPlayerDonation)
+	v.validateRequiredInt("limitOfCardsInEachDonationRequest", uip.LimitOfCardsInEachDonationRequest)
 	return v.Errors()
 }
 

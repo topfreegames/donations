@@ -15,9 +15,18 @@ import (
 //Game represents each game in UR
 //easyjson:json
 type Game struct {
-	ID    string          `json:"id" bson:"_id,omitempty"`
-	Name  string          `json:"name" bson:"name,omitempty"`
+	ID   string `json:"id" bson:"_id,omitempty"`
+	Name string `json:"name" bson:"name,omitempty"`
+
+	// List of items in this game
 	Items map[string]Item `json:"items" bson:""`
+
+	// Number of hours since player's first donation before the limit of donations reset.
+	// If player donates item A at timestamp X, then their donations limit resets at x + DonationCooldownHours.
+	DonationCooldownHours int `json:"donationCooldownHours" bson:"donationCooldownHours"`
+
+	// Cooldown a player must wait before doing his next donation request. Defaults to 8hs
+	DonationRequestCooldownHours int `json:"donationRequestCooldownHours" bson:"donationRequestCooldownHours"`
 }
 
 //Save new game if no ID and updates it otherwise
@@ -35,9 +44,11 @@ func (g *Game) Save(db *mgo.Database, logger zap.Logger) error {
 	info, err := GetGamesCollection(db).Upsert(
 		M{"_id": g.ID},
 		M{
-			"_id":   g.ID,
-			"name":  g.Name,
-			"items": g.Items,
+			"_id":                          g.ID,
+			"name":                         g.Name,
+			"items":                        g.Items,
+			"donationCooldownHours":        g.DonationCooldownHours,
+			"donationRequestCooldownHours": g.DonationRequestCooldownHours,
 		},
 	)
 
@@ -60,8 +71,19 @@ func (g *Game) Save(db *mgo.Database, logger zap.Logger) error {
 }
 
 //AddItem to this game
-func (g *Game) AddItem(key string, metadata map[string]interface{}, db *mgo.Database, logger zap.Logger) (*Item, error) {
-	item := NewItem(key, metadata)
+func (g *Game) AddItem(
+	key string, metadata map[string]interface{},
+	limitOfCardsInEachDonationRequest,
+	limitOfCardsPerPlayerDonation,
+	weightPerDonation int,
+	db *mgo.Database, logger zap.Logger,
+) (*Item, error) {
+	item := NewItem(
+		key, metadata,
+		weightPerDonation,
+		limitOfCardsPerPlayerDonation,
+		limitOfCardsInEachDonationRequest,
+	)
 	g.Items[key] = *item
 	err := g.Save(db, logger)
 	if err != nil {
@@ -86,11 +108,17 @@ func GetGameFromJSON(data []byte) (*Game, error) {
 }
 
 //NewGame returns a new instance of Game
-func NewGame(name, id string) *Game {
+func NewGame(
+	name, id string,
+	donationCooldownHours,
+	donationRequestCooldownHours int,
+) *Game {
 	return &Game{
 		Name:  name,
 		ID:    id,
 		Items: map[string]Item{},
+		DonationCooldownHours:        donationCooldownHours,
+		DonationRequestCooldownHours: donationRequestCooldownHours,
 	}
 }
 

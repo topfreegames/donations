@@ -36,6 +36,8 @@ var _ = Describe("Donation Model", func() {
 				game := models.NewGame(
 					uuid.NewV4().String(),
 					uuid.NewV4().String(),
+					1,
+					2,
 				)
 				err := game.Save(db, logger)
 				Expect(err).NotTo(HaveOccurred())
@@ -70,6 +72,8 @@ var _ = Describe("Donation Model", func() {
 				game = models.NewGame(
 					uuid.NewV4().String(),
 					uuid.NewV4().String(),
+					1,
+					2,
 				)
 				err := game.Save(db, logger)
 				Expect(err).NotTo(HaveOccurred())
@@ -101,6 +105,8 @@ var _ = Describe("Donation Model", func() {
 				game := models.NewGame(
 					uuid.NewV4().String(),
 					uuid.NewV4().String(),
+					1,
+					2,
 				)
 				err := game.Save(db, logger)
 				Expect(err).NotTo(HaveOccurred())
@@ -140,6 +146,8 @@ var _ = Describe("Donation Model", func() {
 				game = models.NewGame(
 					uuid.NewV4().String(),
 					uuid.NewV4().String(),
+					1,
+					2,
 				)
 				err := game.Save(db, logger)
 				Expect(err).NotTo(HaveOccurred())

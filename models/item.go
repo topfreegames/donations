@@ -12,13 +12,27 @@ import (
 type Item struct {
 	Key      string                 `json:"item" bson:"key,omitempty"`
 	Metadata map[string]interface{} `json:"metadata" bson:"metadata"`
+
+	LimitOfCardsInEachDonationRequest int `json:"limitOfCardsInEachDonationRequest" bson:"limitOfCardsInEachDonationRequest"`
+	LimitOfCardsPerPlayerDonation     int `json:"limitOfCardsPerPlayerDonation" bson:"limitOfCardsPerPlayerDonation"`
+
+	//This weight counts for the donation cooldown limits of each player
+	WeightPerDonation int `json:"weightPerDonation" bson:"weightPerDonation"`
 }
 
 //NewItem returns a configured new item
-func NewItem(key string, metadata map[string]interface{}) *Item {
+func NewItem(
+	key string, metadata map[string]interface{},
+	weightPerDonation,
+	limitOfCardsPerPlayerDonation,
+	limitOfCardsInEachDonationRequest int,
+) *Item {
 	return &Item{
-		Key:      key,
-		Metadata: metadata,
+		Key:                               key,
+		Metadata:                          metadata,
+		WeightPerDonation:                 weightPerDonation,
+		LimitOfCardsPerPlayerDonation:     limitOfCardsPerPlayerDonation,
+		LimitOfCardsInEachDonationRequest: limitOfCardsInEachDonationRequest,
 	}
 }
 

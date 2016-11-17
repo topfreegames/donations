@@ -11,7 +11,12 @@ import (
 
 //GetTestGame to use in tests
 func GetTestGame(db *mgo.Database, logger zap.Logger) (*models.Game, error) {
-	game := models.NewGame(uuid.NewV4().String(), uuid.NewV4().String())
+	game := models.NewGame(
+		uuid.NewV4().String(), // Name
+		uuid.NewV4().String(), // ID
+		24, // DonationRequestCooldownHours
+		8,  // DonationCooldownHours
+	)
 	err := game.Save(db, logger)
 	return game, err
 }

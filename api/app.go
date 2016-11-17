@@ -252,7 +252,6 @@ func (app *App) configureApplication() error {
 
 	//Games Routes
 	//TODO: Get Game Details
-	a.Post("/games", CreateGameHandler(app))
 	a.Put("/games/:gameID", UpdateGameHandler(app))
 
 	//Items Routes

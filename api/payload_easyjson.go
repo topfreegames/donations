@@ -50,6 +50,12 @@ func easyjsonA8a797f8DecodeGithubComTopfreegamesDonationsApi(in *jlexer.Lexer, o
 				}
 				in.Delim('}')
 			}
+		case "weightPerDonation":
+			out.WeightPerDonation = int(in.Int())
+		case "limitOfCardsPerPlayerDonation":
+			out.LimitOfCardsPerPlayerDonation = int(in.Int())
+		case "limitOfCardsInEachDonationRequest":
+			out.LimitOfCardsInEachDonationRequest = int(in.Int())
 		default:
 			in.SkipRecursive()
 		}
@@ -86,6 +92,24 @@ func easyjsonA8a797f8EncodeGithubComTopfreegamesDonationsApi(out *jwriter.Writer
 		}
 		out.RawByte('}')
 	}
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"weightPerDonation\":")
+	out.Int(int(in.WeightPerDonation))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"limitOfCardsPerPlayerDonation\":")
+	out.Int(int(in.LimitOfCardsPerPlayerDonation))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"limitOfCardsInEachDonationRequest\":")
+	out.Int(int(in.LimitOfCardsInEachDonationRequest))
 	out.RawByte('}')
 }
 
@@ -231,6 +255,10 @@ func easyjsonA8a797f8DecodeGithubComTopfreegamesDonationsApi3(in *jlexer.Lexer, 
 		switch key {
 		case "name":
 			out.Name = string(in.String())
+		case "donationCooldownHours":
+			out.DonationCooldownHours = int(in.Int())
+		case "donationRequestCooldownHours":
+			out.DonationRequestCooldownHours = int(in.Int())
 		default:
 			in.SkipRecursive()
 		}
@@ -248,6 +276,18 @@ func easyjsonA8a797f8EncodeGithubComTopfreegamesDonationsApi3(out *jwriter.Write
 	first = false
 	out.RawString("\"name\":")
 	out.String(string(in.Name))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"donationCooldownHours\":")
+	out.Int(int(in.DonationCooldownHours))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"donationRequestCooldownHours\":")
+	out.Int(int(in.DonationRequestCooldownHours))
 	out.RawByte('}')
 }
 
@@ -260,61 +300,7 @@ func (v UpdateGamePayload) MarshalEasyJSON(w *jwriter.Writer) {
 func (v *UpdateGamePayload) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjsonA8a797f8DecodeGithubComTopfreegamesDonationsApi3(l, v)
 }
-func easyjsonA8a797f8DecodeGithubComTopfreegamesDonationsApi4(in *jlexer.Lexer, out *CreateGamePayload) {
-	if in.IsNull() {
-		in.Skip()
-		return
-	}
-	in.Delim('{')
-	for !in.IsDelim('}') {
-		key := in.UnsafeString()
-		in.WantColon()
-		if in.IsNull() {
-			in.Skip()
-			in.WantComma()
-			continue
-		}
-		switch key {
-		case "name":
-			out.Name = string(in.String())
-		case "id":
-			out.ID = string(in.String())
-		default:
-			in.SkipRecursive()
-		}
-		in.WantComma()
-	}
-	in.Delim('}')
-}
-func easyjsonA8a797f8EncodeGithubComTopfreegamesDonationsApi4(out *jwriter.Writer, in CreateGamePayload) {
-	out.RawByte('{')
-	first := true
-	_ = first
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"name\":")
-	out.String(string(in.Name))
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"id\":")
-	out.String(string(in.ID))
-	out.RawByte('}')
-}
-
-// MarshalEasyJSON supports easyjson.Marshaler interface
-func (v CreateGamePayload) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonA8a797f8EncodeGithubComTopfreegamesDonationsApi4(w, v)
-}
-
-// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *CreateGamePayload) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonA8a797f8DecodeGithubComTopfreegamesDonationsApi4(l, v)
-}
-func easyjsonA8a797f8DecodeGithubComTopfreegamesDonationsApi5(in *jlexer.Lexer, out *Validation) {
+func easyjsonA8a797f8DecodeGithubComTopfreegamesDonationsApi4(in *jlexer.Lexer, out *Validation) {
 	if in.IsNull() {
 		in.Skip()
 		return
@@ -336,7 +322,7 @@ func easyjsonA8a797f8DecodeGithubComTopfreegamesDonationsApi5(in *jlexer.Lexer, 
 	}
 	in.Delim('}')
 }
-func easyjsonA8a797f8EncodeGithubComTopfreegamesDonationsApi5(out *jwriter.Writer, in Validation) {
+func easyjsonA8a797f8EncodeGithubComTopfreegamesDonationsApi4(out *jwriter.Writer, in Validation) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -345,10 +331,10 @@ func easyjsonA8a797f8EncodeGithubComTopfreegamesDonationsApi5(out *jwriter.Write
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v Validation) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonA8a797f8EncodeGithubComTopfreegamesDonationsApi5(w, v)
+	easyjsonA8a797f8EncodeGithubComTopfreegamesDonationsApi4(w, v)
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *Validation) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonA8a797f8DecodeGithubComTopfreegamesDonationsApi5(l, v)
+	easyjsonA8a797f8DecodeGithubComTopfreegamesDonationsApi4(l, v)
 }

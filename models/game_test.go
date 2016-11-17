@@ -38,6 +38,8 @@ var _ = Describe("Game Model", func() {
 				game := models.NewGame(
 					uuid.NewV4().String(),
 					uuid.NewV4().String(),
+					1,
+					2,
 				)
 				err := game.Save(db, logger)
 				Expect(err).NotTo(HaveOccurred())
@@ -48,12 +50,16 @@ var _ = Describe("Game Model", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(dbGame.Name).To(Equal(game.Name))
 				Expect(dbGame.ID).To(Equal(game.ID))
+				Expect(dbGame.DonationCooldownHours).To(Equal(1))
+				Expect(dbGame.DonationRequestCooldownHours).To(Equal(2))
 			})
 
 			It("Should update an existing game", func() {
 				game := models.NewGame(
 					uuid.NewV4().String(),
 					uuid.NewV4().String(),
+					1,
+					2,
 				)
 				err := game.Save(db, logger)
 				Expect(err).NotTo(HaveOccurred())
@@ -62,6 +68,8 @@ var _ = Describe("Game Model", func() {
 
 				newName := uuid.NewV4().String()
 				game.Name = newName
+				game.DonationCooldownHours = 3
+				game.DonationRequestCooldownHours = 4
 				err = game.Save(db, logger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(game.ID).To(Equal(prevID))
@@ -71,6 +79,8 @@ var _ = Describe("Game Model", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(dbGame.Name).To(Equal(newName))
 				Expect(dbGame.ID).To(Equal(game.ID))
+				Expect(dbGame.DonationCooldownHours).To(Equal(3))
+				Expect(dbGame.DonationRequestCooldownHours).To(Equal(4))
 			})
 		})
 		Describe("Measure", func() {
@@ -80,6 +90,8 @@ var _ = Describe("Game Model", func() {
 				game = models.NewGame(
 					uuid.NewV4().String(),
 					uuid.NewV4().String(),
+					1,
+					2,
 				)
 				err := game.Save(db, logger)
 				Expect(err).NotTo(HaveOccurred())
@@ -90,6 +102,8 @@ var _ = Describe("Game Model", func() {
 					game := models.NewGame(
 						uuid.NewV4().String(),
 						uuid.NewV4().String(),
+						1,
+						2,
 					)
 					err := game.Save(db, logger)
 					Expect(err).NotTo(HaveOccurred())
@@ -138,6 +152,8 @@ var _ = Describe("Game Model", func() {
 				game = models.NewGame(
 					uuid.NewV4().String(),
 					uuid.NewV4().String(),
+					1,
+					2,
 				)
 				err := game.Save(db, logger)
 				Expect(err).NotTo(HaveOccurred())
@@ -163,7 +179,7 @@ var _ = Describe("Game Model", func() {
 
 				key := uuid.NewV4().String()
 				meta := map[string]interface{}{"x": 1}
-				item, err := game.AddItem(key, meta, db, logger)
+				item, err := game.AddItem(key, meta, 1, 2, 3, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(item.Key).To(Equal(key))
@@ -174,8 +190,13 @@ var _ = Describe("Game Model", func() {
 				Expect(dbGame.ID).To(Equal(game.ID))
 
 				Expect(dbGame.Items).To(HaveLen(1))
-				Expect(dbGame.Items[key].Key).To(Equal(key))
-				Expect(dbGame.Items[key].Metadata).To(BeEquivalentTo(meta))
+
+				dbItem := dbGame.Items[key]
+				Expect(dbItem.Key).To(Equal(key))
+				Expect(dbItem.Metadata).To(BeEquivalentTo(meta))
+				Expect(dbItem.WeightPerDonation).To(Equal(3))
+				Expect(dbItem.LimitOfCardsInEachDonationRequest).To(Equal(1))
+				Expect(dbItem.LimitOfCardsPerPlayerDonation).To(Equal(2))
 			})
 
 			It("Should add multiple items to a game", func() {
@@ -185,7 +206,7 @@ var _ = Describe("Game Model", func() {
 				for i := 0; i < 10; i++ {
 					key := fmt.Sprintf("multiple-keys-test-%d", i)
 					meta := map[string]interface{}{"x": i}
-					item, err := game.AddItem(key, meta, db, logger)
+					item, err := game.AddItem(key, meta, 1, 2, 3, db, logger)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(item).NotTo(BeNil())
 				}
@@ -198,7 +219,11 @@ var _ = Describe("Game Model", func() {
 				for i := 0; i < 10; i++ {
 					key := fmt.Sprintf("multiple-keys-test-%d", i)
 					meta := map[string]interface{}{"x": i}
-					Expect(dbGame.Items[key].Metadata).To(BeEquivalentTo(meta))
+					dbItem := dbGame.Items[key]
+					Expect(dbItem.Metadata).To(BeEquivalentTo(meta))
+					Expect(dbItem.WeightPerDonation).To(Equal(3))
+					Expect(dbItem.LimitOfCardsInEachDonationRequest).To(Equal(1))
+					Expect(dbItem.LimitOfCardsPerPlayerDonation).To(Equal(2))
 				}
 			})
 
@@ -209,18 +234,22 @@ var _ = Describe("Game Model", func() {
 				key := uuid.NewV4().String()
 
 				meta := map[string]interface{}{"x": 1}
-				_, err = game.AddItem(key, meta, db, logger)
+				_, err = game.AddItem(key, meta, 1, 2, 3, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 
 				meta2 := map[string]interface{}{"x": 2}
-				_, err = game.AddItem(key, meta2, db, logger)
+				_, err = game.AddItem(key, meta2, 4, 5, 6, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 
 				dbGame, err := models.GetGameByID(game.ID, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(dbGame.ID).To(Equal(game.ID))
 
-				Expect(dbGame.Items[key].Metadata).To(BeEquivalentTo(meta2))
+				dbItem := dbGame.Items[key]
+				Expect(dbItem.Metadata).To(BeEquivalentTo(meta2))
+				Expect(dbItem.WeightPerDonation).To(Equal(6))
+				Expect(dbItem.LimitOfCardsInEachDonationRequest).To(Equal(4))
+				Expect(dbItem.LimitOfCardsPerPlayerDonation).To(Equal(5))
 			})
 		})
 
@@ -240,7 +269,7 @@ var _ = Describe("Game Model", func() {
 
 			Measure("it should add items fast", func(b Benchmarker) {
 				runtime := b.Time("runtime", func() {
-					_, err := game.AddItem(uuid.NewV4().String(), meta, db, logger)
+					_, err := game.AddItem(uuid.NewV4().String(), meta, 1, 2, 3, db, logger)
 					Expect(err).NotTo(HaveOccurred())
 				})
 

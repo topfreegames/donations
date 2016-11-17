@@ -80,7 +80,6 @@ var _ = Describe("Game Handler", func() {
 				}
 				jsonPayload, err := payload.ToJSON()
 				Expect(err).NotTo(HaveOccurred())
-				fmt.Println(donation.ID)
 				status, body := Post(
 					app,
 					fmt.Sprintf("/games/%s/donation-requests/%s/", game.ID, donation.ID),
