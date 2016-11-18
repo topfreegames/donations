@@ -16,6 +16,19 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+//Clock identifies a clock to be used by the model
+type Clock interface {
+	GetUTCTime() time.Time
+}
+
+//RealClock returns the current time as UTC Date
+type RealClock struct{}
+
+//GetUTCTime returns the current time as UTC Date
+func (r *RealClock) GetUTCTime() time.Time {
+	return time.Now().UTC()
+}
+
 //Donation represents a specific donation a player made to a request
 //easyjson:json
 type Donation struct {
@@ -36,6 +49,25 @@ type DonationRequest struct {
 	CreatedAt  int64 `json:"createdAt" bson:"createdAt"`
 	UpdatedAt  int64 `json:"updatedAt" bson:"updatedAt,omitempty"`
 	FinishedAt int64 `json:"finishedAt" bson:"finishedAt,omitempty"`
+
+	Clock Clock `json:"-" bson:"-"`
+}
+
+//NewDonationRequest returns a new instance of DonationRequest
+func NewDonationRequest(gameID string, item, player, clan string, clock ...Clock) *DonationRequest {
+	var cl Clock
+	cl = &RealClock{}
+	if len(clock) == 1 {
+		cl = clock[0]
+	}
+
+	return &DonationRequest{
+		GameID: gameID,
+		Item:   item,
+		Player: player,
+		Clan:   clan,
+		Clock:  cl,
+	}
 }
 
 //GetGame associated to this donation request
@@ -43,11 +75,10 @@ func (d *DonationRequest) GetGame(db *mgo.Database, logger zap.Logger) (*Game, e
 	return GetGameByID(d.GameID, db, logger)
 }
 
-//Create new donation request
-func (d *DonationRequest) Create(db *mgo.Database, logger zap.Logger) error {
+func (d *DonationRequest) validateDonationRequest(logger zap.Logger) error {
 	l := logger.With(
 		zap.String("source", "DonationRequestModel"),
-		zap.String("operation", "Save"),
+		zap.String("operation", "validateDonationRequest"),
 	)
 
 	if d.GameID == "" {
@@ -70,6 +101,44 @@ func (d *DonationRequest) Create(db *mgo.Database, logger zap.Logger) error {
 		}
 	}
 
+	return nil
+}
+
+func (d *DonationRequest) validateDonationRequestCooldown(gameID string, cooldown int, db *mgo.Database, logger zap.Logger) error {
+	currentTime := d.Clock.GetUTCTime()
+	c, err := GetDonationRequestsCollection(db).Find(bson.M{
+		"player": d.Player,
+		"createdAt": bson.M{
+			"$gte": (currentTime.Add(-1 * (time.Duration(cooldown) * time.Hour))).Unix(),
+		},
+	}).Count()
+	if err != nil {
+		return err
+	}
+
+	if c > 0 {
+		return &errors.DonationRequestCooldownViolatedError{
+			Time:    currentTime.Unix(),
+			GameID:  gameID,
+			ItemKey: d.Item,
+		}
+	}
+
+	return nil
+}
+
+//Create new donation request
+func (d *DonationRequest) Create(db *mgo.Database, logger zap.Logger) error {
+	l := logger.With(
+		zap.String("source", "DonationRequestModel"),
+		zap.String("operation", "Save"),
+	)
+
+	err := d.validateDonationRequest(logger)
+	if err != nil {
+		return err
+	}
+
 	game, err := d.GetGame(db, logger)
 	if err != nil {
 		log.E(l, "Failed to get game associated to Donation Request.", func(cm log.CM) {
@@ -85,9 +154,18 @@ func (d *DonationRequest) Create(db *mgo.Database, logger zap.Logger) error {
 		}
 	}
 
+	cooldown := game.DonationRequestCooldownHours
+	err = d.validateDonationRequestCooldown(game.ID, cooldown, db, logger)
+	if err != nil {
+		log.E(l, "Donation cooldown infringed.", func(cm log.CM) {
+			cm.Write(zap.Error(err))
+		})
+		return err
+	}
+
 	d.ID = uuid.NewV4().String()
-	d.CreatedAt = time.Now().UTC().Unix()
-	d.UpdatedAt = time.Now().UTC().Unix()
+	d.CreatedAt = d.Clock.GetUTCTime().Unix()
+	d.UpdatedAt = d.Clock.GetUTCTime().Unix()
 
 	log.D(l, "Saving donation request...")
 	err = GetDonationRequestsCollection(db).Insert(d)
@@ -104,13 +182,10 @@ func (d *DonationRequest) Create(db *mgo.Database, logger zap.Logger) error {
 	return nil
 }
 
-//Donate an item in a given Donation Request
-func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, logger zap.Logger) error {
+func (d *DonationRequest) validateDonationInputs(player string, amount int, logger zap.Logger) error {
 	l := logger.With(
 		zap.String("source", "DonationRequestModel"),
-		zap.String("operation", "Donate"),
-		zap.String("player", player),
-		zap.Int("amount", amount),
+		zap.String("operation", "Save"),
 	)
 
 	if d.ID == "" {
@@ -136,6 +211,23 @@ func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, lo
 		}
 	}
 
+	return nil
+}
+
+//Donate an item in a given Donation Request
+func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, logger zap.Logger) error {
+	l := logger.With(
+		zap.String("source", "DonationRequestModel"),
+		zap.String("operation", "Donate"),
+		zap.String("player", player),
+		zap.Int("amount", amount),
+	)
+
+	err := d.validateDonationInputs(player, amount, logger)
+	if err != nil {
+		return err
+	}
+
 	game, err := d.GetGame(db, logger)
 	if err != nil {
 		log.E(l, "DonationRequest must be loaded", func(cm log.CM) {
@@ -154,14 +246,23 @@ func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, lo
 		return err
 	}
 
+	err = d.ValidateDonationRequestLimitPerPlayer(game, player, amount, logger)
+	if err != nil {
+		log.E(l, err.Error(), func(cm log.CM) {
+			cm.Write(zap.Error(err))
+		})
+
+		return err
+	}
+
 	d.Donations = append(d.Donations, Donation{Player: player, Amount: amount})
 
 	set := bson.M{
-		"updatedAt": time.Now().UTC().Unix(),
+		"updatedAt": d.Clock.GetUTCTime().Unix(),
 	}
 
-	if d.GetDonationCount()+1 >= game.Items[d.Item].LimitOfCardsInEachDonationRequest {
-		set["finishedAt"] = time.Now().UTC().Unix()
+	if d.GetDonationCount()+amount >= game.Items[d.Item].LimitOfCardsInEachDonationRequest {
+		set["finishedAt"] = d.Clock.GetUTCTime().Unix()
 	}
 
 	log.D(l, "Saving donation...")
@@ -208,11 +309,46 @@ func (d *DonationRequest) ValidateDonationRequestLimit(game *Game, amount int, l
 	return nil
 }
 
+//ValidateDonationRequestLimitPerPlayer ensures that no more than the allowed number of cards has been donated per player
+func (d *DonationRequest) ValidateDonationRequestLimitPerPlayer(game *Game, player string, amount int, logger zap.Logger) error {
+	item := game.Items[d.Item]
+	currentDonations := d.GetDonationCountForPlayer(player)
+	if currentDonations+amount > item.LimitOfCardsPerPlayerDonation {
+		err := &errors.LimitOfCardsPerPlayerInDonationRequestReachedError{
+			GameID:               game.ID,
+			DonationRequestID:    d.ID,
+			ItemKey:              d.Item,
+			Amount:               amount,
+			Player:               player,
+			CurrentDonationCount: currentDonations,
+		}
+		log.E(logger, err.Error(), func(cm log.CM) {
+			cm.Write(zap.Error(err))
+			cm.Write(zap.String("GameID", game.ID))
+			cm.Write(zap.String("DonationRequestID", d.ID))
+		})
+
+		return err
+	}
+	return nil
+}
+
 //GetDonationCount returns the total amount of donations
 func (d *DonationRequest) GetDonationCount() int {
 	sum := 0
 	for i := 0; i < len(d.Donations); i++ {
 		sum += d.Donations[i].Amount
+	}
+	return sum
+}
+
+//GetDonationCountForPlayer returns the total amount of donations for a given player ID
+func (d *DonationRequest) GetDonationCountForPlayer(playerID string) int {
+	sum := 0
+	for i := 0; i < len(d.Donations); i++ {
+		if d.Donations[i].Player == playerID {
+			sum += d.Donations[i].Amount
+		}
 	}
 	return sum
 }
@@ -240,16 +376,6 @@ func GetDonationFromJSON(data []byte) (*Donation, error) {
 	return donation, l.Error()
 }
 
-//NewDonationRequest returns a new instance of DonationRequest
-func NewDonationRequest(gameID string, item, player, clan string) *DonationRequest {
-	return &DonationRequest{
-		GameID: gameID,
-		Item:   item,
-		Player: player,
-		Clan:   clan,
-	}
-}
-
 //GetDonationRequestsCollection to update or query games
 func GetDonationRequestsCollection(db *mgo.Database) *mgo.Collection {
 	return db.C("requests")
@@ -265,5 +391,6 @@ func GetDonationRequestByID(id string, db *mgo.Database, logger zap.Logger) (*Do
 		}
 		return nil, err
 	}
+	donationRequest.Clock = &RealClock{}
 	return &donationRequest, nil
 }

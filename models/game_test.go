@@ -296,4 +296,18 @@ var _ = Describe("Game Model", func() {
 			}, 5)
 		})
 	})
+
+	Describe("Can Serialize/Deserialize", func() {
+		It("Should serialize/deserialize", func() {
+			game, err := GetTestGame(db, logger, false)
+			Expect(err).NotTo(HaveOccurred())
+
+			s, err := game.ToJSON()
+			Expect(err).NotTo(HaveOccurred())
+
+			g, err := models.GetGameFromJSON(s)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(g.ID).To(Equal(game.ID))
+		})
+	})
 })

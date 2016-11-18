@@ -16,6 +16,8 @@ func GetTestGame(db *mgo.Database, logger zap.Logger, withItems bool, options ..
 		"LimitOfCardsInEachDonationRequest": 6,
 		"LimitOfCardsPerPlayerDonation":     2,
 		"WeightPerDonation":                 1,
+		"DonationRequestCooldownHours":      24,
+		"DonationCooldownHours":             8,
 	}
 
 	if len(options) == 1 {
@@ -25,10 +27,10 @@ func GetTestGame(db *mgo.Database, logger zap.Logger, withItems bool, options ..
 	}
 
 	game := models.NewGame(
-		uuid.NewV4().String(), // Name
-		uuid.NewV4().String(), // ID
-		24, // DonationRequestCooldownHours
-		8,  // DonationCooldownHours
+		uuid.NewV4().String(),                     // Name
+		uuid.NewV4().String(),                     // ID
+		opt["DonationRequestCooldownHours"].(int), // DonationRequestCooldownHours
+		opt["DonationCooldownHours"].(int),        // DonationCooldownHours
 	)
 	err := game.Save(db, logger)
 	if err != nil {

@@ -55,3 +55,31 @@ type LimitOfCardsInDonationRequestReachedError struct {
 func (err LimitOfCardsInDonationRequestReachedError) Error() string {
 	return "This donation request can't accept this donation."
 }
+
+//LimitOfCardsPerPlayerInDonationRequestReachedError happens when a donation happens for an item that's not in the game
+type LimitOfCardsPerPlayerInDonationRequestReachedError struct {
+	GameID               string
+	DonationRequestID    string
+	ItemKey              string
+	Amount               int
+	Player               string
+	CurrentDonationCount int
+}
+
+//Error string
+func (err LimitOfCardsPerPlayerInDonationRequestReachedError) Error() string {
+	return "This donation request can't accept any more donations from this player."
+}
+
+//DonationRequestCooldownViolatedError happens when a donation request
+//is created in less than <cooldown> hours after last one
+type DonationRequestCooldownViolatedError struct {
+	GameID  string
+	ItemKey string
+	Time    int64
+}
+
+//Error string
+func (err DonationRequestCooldownViolatedError) Error() string {
+	return "This player can't create a new donation request so soon."
+}

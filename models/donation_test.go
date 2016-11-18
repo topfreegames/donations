@@ -225,6 +225,78 @@ var _ = Describe("Donation Model", func() {
 				Expect(err.Error()).To(ContainSubstring("This donation request can't accept this donation."))
 			})
 
+			It("Should respect the donation per player per donation request limit", func() {
+				game, err := GetTestGame(db, logger, true, map[string]interface{}{
+					"LimitOfCardsInEachDonationRequest": 5,
+					"LimitOfCardsPerPlayerDonation":     1,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				dr, err := GetTestDonationRequest(game, db, logger)
+
+				pID := uuid.NewV4().String()
+				err = dr.Donate(pID, 1, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				p2ID := uuid.NewV4().String()
+				err = dr.Donate(p2ID, 1, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = dr.Donate(pID, 1, db, logger)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring(
+					"This donation request can't accept any more donations from this player.",
+				))
+			})
+
+			It("Should respect the donation per player per donation request limit max items", func() {
+				game, err := GetTestGame(db, logger, true, map[string]interface{}{
+					"LimitOfCardsInEachDonationRequest": 5,
+					"LimitOfCardsPerPlayerDonation":     1,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				dr, err := GetTestDonationRequest(game, db, logger)
+
+				pID := uuid.NewV4().String()
+				err = dr.Donate(pID, 2, db, logger)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring(
+					"This donation request can't accept any more donations from this player.",
+				))
+			})
+
+			It("Should respect the donation request per player cooldown", func() {
+				game, err := GetTestGame(db, logger, true)
+				Expect(err).NotTo(HaveOccurred())
+
+				pID := uuid.NewV4().String()
+				clock := &MockClock{Time: 0}
+				dr := models.NewDonationRequest(game.ID, GetFirstItem(game).Key, pID, uuid.NewV4().String(), clock)
+				err = dr.Create(db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				p2ID := uuid.NewV4().String()
+				dr = models.NewDonationRequest(game.ID, GetFirstItem(game).Key, p2ID, uuid.NewV4().String(), clock)
+				err = dr.Create(db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				//Advance in time
+				clock = &MockClock{Time: int64((9 * time.Hour).Seconds())}
+				dr = models.NewDonationRequest(game.ID, GetFirstItem(game).Key, pID, uuid.NewV4().String(), clock)
+				err = dr.Create(db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				//Advance 1h in time
+				clock = &MockClock{Time: int64((10 * time.Hour).Seconds())}
+				dr = models.NewDonationRequest(game.ID, GetFirstItem(game).Key, pID, uuid.NewV4().String(), clock)
+				err = dr.Create(db, logger)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring(
+					"This player can't create a new donation request so soon.",
+				))
+			})
+
 			It("Should fail if DonationRequest is not loaded", func() {
 				game, err := GetTestGame(db, logger, true, map[string]interface{}{
 					"LimitOfCardsInEachDonationRequest": 2,
