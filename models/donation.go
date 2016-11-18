@@ -145,7 +145,7 @@ func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, lo
 		return err
 	}
 
-	err = d.ValidateDonationRequestLimit(game, logger)
+	err = d.ValidateDonationRequestLimit(game, amount, logger)
 	if err != nil {
 		log.E(l, err.Error(), func(cm log.CM) {
 			cm.Write(zap.Error(err))
@@ -188,9 +188,9 @@ func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, lo
 }
 
 //ValidateDonationRequestLimit ensures that no more than the allowed number of cards has been donated
-func (d *DonationRequest) ValidateDonationRequestLimit(game *Game, logger zap.Logger) error {
+func (d *DonationRequest) ValidateDonationRequestLimit(game *Game, amount int, logger zap.Logger) error {
 	item := game.Items[d.Item]
-	if d.GetDonationCount() >= item.LimitOfCardsInEachDonationRequest {
+	if d.GetDonationCount()+amount > item.LimitOfCardsInEachDonationRequest {
 		err := &errors.LimitOfCardsInDonationRequestReachedError{
 			GameID:            game.ID,
 			DonationRequestID: d.ID,

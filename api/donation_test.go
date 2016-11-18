@@ -3,6 +3,7 @@ package api_test
 import (
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/topfreegames/donations/models"
 
@@ -87,6 +88,59 @@ var _ = Describe("Game Handler", func() {
 				)
 				Expect(status).To(Equal(http.StatusOK))
 				Expect(body).To(Equal("{\"success\":true}"))
+			})
+
+			It("Should not donate more than allowed", func() {
+				var wg sync.WaitGroup
+				results := []map[string]interface{}{}
+
+				game, err := GetTestGame(app.MongoDb, app.Logger, true, map[string]interface{}{
+					"LimitOfCardsInEachDonationRequest": 2,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				donation, err := GetTestDonationRequest(game, app.MongoDb, app.Logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				playerID := uuid.NewV4().String()
+				payload := &api.DonationPayload{
+					Player: playerID,
+					Amount: 1,
+				}
+				jsonPayload, err := payload.ToJSON()
+				Expect(err).NotTo(HaveOccurred())
+
+				for i := 0; i < 10; i++ {
+					wg.Add(1)
+
+					go func(index int) {
+						defer wg.Done()
+						status, body := Post(
+							app,
+							fmt.Sprintf("/games/%s/donation-requests/%s/", game.ID, donation.ID),
+							string(jsonPayload),
+						)
+
+						results = append(results, map[string]interface{}{
+							"status": status,
+							"body":   body,
+						})
+					}(i)
+				}
+
+				wg.Wait()
+
+				ok := 0
+				failed := 0
+				for _, result := range results {
+					if result["status"] == 200 {
+						ok++
+					} else {
+						failed++
+					}
+				}
+				Expect(ok).To(Equal(2))
+				Expect(failed).To(Equal(8))
 			})
 		})
 	})
