@@ -29,7 +29,7 @@ type ParameterIsRequiredError struct {
 
 //Error string
 func (err ParameterIsRequiredError) Error() string {
-	return fmt.Sprintf("%s is required to create a new %s", err.Parameter, err.Model)
+	return fmt.Sprintf("%s is required to create a new %s.", err.Parameter, err.Model)
 }
 
 //ItemNotFoundInGameError happens when a donation happens for an item that's not in the game
@@ -40,5 +40,17 @@ type ItemNotFoundInGameError struct {
 
 //Error string
 func (err ItemNotFoundInGameError) Error() string {
-	return fmt.Sprintf("Item %s was not found in game %s", err.ItemKey, err.GameID)
+	return fmt.Sprintf("Item %s was not found in game %s.", err.ItemKey, err.GameID)
+}
+
+//LimitOfCardsInDonationRequestReachedError happens when a donation happens for an item that's not in the game
+type LimitOfCardsInDonationRequestReachedError struct {
+	GameID            string
+	DonationRequestID string
+	ItemKey           string
+}
+
+//Error string
+func (err LimitOfCardsInDonationRequestReachedError) Error() string {
+	return "This donation request is already finished."
 }

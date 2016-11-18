@@ -8,11 +8,13 @@ import (
 
 	"github.com/mailru/easyjson/jlexer"
 	"github.com/mailru/easyjson/jwriter"
+	uuid "github.com/satori/go.uuid"
 	"github.com/topfreegames/donations/errors"
 	"github.com/topfreegames/donations/log"
 	"github.com/uber-go/zap"
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	redsync "gopkg.in/redsync.v1"
 )
 
 //Donation represents a specific donation a player made to a request
@@ -29,12 +31,17 @@ type DonationRequest struct {
 	Item      string     `json:"item" bson:"item,omitempty"`
 	Player    string     `json:"player" bson:"player"`
 	Clan      string     `json:"clan" bson:"clan"`
-	Game      *Game      `json:"game" bson:"game"`
+	GameID    string     `json:"gameID" bson:"gameID"`
 	Donations []Donation `json:"donations" bson:""`
 
-	CreatedAt  time.Time `json:"createdAt" bson:"createdAt"`
-	UpdatedAt  time.Time `json:"updatedAt" bson:"updatedAt,omitempty"`
-	FinishedAt time.Time `json:"finishedAt" bson:"finishedAt,omitempty"`
+	CreatedAt  int64 `json:"createdAt" bson:"createdAt"`
+	UpdatedAt  int64 `json:"updatedAt" bson:"updatedAt,omitempty"`
+	FinishedAt int64 `json:"finishedAt" bson:"finishedAt,omitempty"`
+}
+
+//GetGame associated to this donation request
+func (d *DonationRequest) GetGame(db *mgo.Database, logger zap.Logger) (*Game, error) {
+	return GetGameByID(d.GameID, db, logger)
 }
 
 //Create new donation request
@@ -44,11 +51,17 @@ func (d *DonationRequest) Create(db *mgo.Database, logger zap.Logger) error {
 		zap.String("operation", "Save"),
 	)
 
-	if d.Game == nil {
-		return &errors.ParameterIsRequiredError{
-			Parameter: "Game",
+	if d.GameID == "" {
+		err := &errors.ParameterIsRequiredError{
+			Parameter: "GameID",
 			Model:     "DonationRequest",
 		}
+
+		log.E(l, "GameID cannot be null", func(cm log.CM) {
+			cm.Write(zap.Error(err))
+		})
+
+		return err
 	}
 
 	if d.Item == "" {
@@ -58,19 +71,27 @@ func (d *DonationRequest) Create(db *mgo.Database, logger zap.Logger) error {
 		}
 	}
 
-	if _, ok := d.Game.Items[d.Item]; !ok {
+	game, err := d.GetGame(db, logger)
+	if err != nil {
+		log.E(l, "Failed to get game associated to Donation Request.", func(cm log.CM) {
+			cm.Write(zap.Error(err))
+		})
+		return err
+	}
+
+	if _, ok := game.Items[d.Item]; !ok {
 		return &errors.ItemNotFoundInGameError{
 			ItemKey: d.Item,
-			GameID:  d.Game.ID,
+			GameID:  game.ID,
 		}
 	}
 
-	d.ID = bson.NewObjectId().Hex()
-	d.CreatedAt = time.Now().UTC()
-	d.UpdatedAt = time.Now().UTC()
+	d.ID = uuid.NewV4().String()
+	d.CreatedAt = time.Now().UTC().Unix()
+	d.UpdatedAt = time.Now().UTC().Unix()
 
 	log.D(l, "Saving donation request...")
-	err := GetDonationRequestsCollection(db).Insert(d)
+	err = GetDonationRequestsCollection(db).Insert(d)
 
 	if err != nil {
 		log.E(l, "Failed to save donation request.", func(cm log.CM) {
@@ -85,7 +106,7 @@ func (d *DonationRequest) Create(db *mgo.Database, logger zap.Logger) error {
 }
 
 //Donate an item in a given Donation Request
-func (d *DonationRequest) Donate(db *mgo.Database, player string, amount int, logger zap.Logger) error {
+func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, mutex *redsync.Mutex, logger zap.Logger) error {
 	l := logger.With(
 		zap.String("source", "DonationRequestModel"),
 		zap.String("operation", "Donate"),
@@ -94,22 +115,77 @@ func (d *DonationRequest) Donate(db *mgo.Database, player string, amount int, lo
 	)
 
 	if d.ID == "" {
-		return fmt.Errorf("Can't donate without a proper DB-loaded DonationRequest (ID is required).")
+		err := fmt.Errorf("Can't donate without a proper DB-loaded DonationRequest (ID is required).")
+		log.E(l, "DonationRequest must be loaded", func(cm log.CM) {
+			cm.Write(zap.Error(err))
+		})
+
+		return err
+	}
+
+	if player == "" {
+		return &errors.ParameterIsRequiredError{
+			Parameter: "Player",
+			Model:     "Donation",
+		}
+	}
+
+	if amount <= 0 {
+		return &errors.ParameterIsRequiredError{
+			Parameter: "Amount",
+			Model:     "Donation",
+		}
+	}
+
+	game, err := d.GetGame(db, logger)
+	if err != nil {
+		log.E(l, "DonationRequest must be loaded", func(cm log.CM) {
+			cm.Write(zap.Error(err))
+		})
+
+		return err
+	}
+
+	err = mutex.Lock()
+	defer mutex.Unlock()
+	if err != nil {
+		log.E(l, "Could not acquire lock for donation after many retries.", func(cm log.CM) {
+			cm.Write(zap.Error(err))
+		})
+
+		return err
+	}
+
+	err = d.ValidateDonationRequestLimit(game, logger)
+	if err != nil {
+		log.E(l, err.Error(), func(cm log.CM) {
+			cm.Write(zap.Error(err))
+		})
+
+		return err
+	}
+
+	d.Donations = append(d.Donations, Donation{Player: player, Amount: amount})
+
+	set := bson.M{
+		"updatedAt": time.Now().UTC().Unix(),
+	}
+
+	if d.GetDonationCount()+1 >= game.Items[d.Item].LimitOfCardsInEachDonationRequest {
+		set["finishedAt"] = time.Now().UTC().Unix()
 	}
 
 	log.D(l, "Saving donation...")
 	query := bson.M{"_id": d.ID}
 	update := bson.M{
-		"$set": bson.M{
-			"updatedAt": time.Now().UTC(),
-		},
+		"$set": set,
 		"$push": bson.M{"donations": bson.M{
 			"player": player,
 			"amount": amount,
 		}},
 	}
 
-	err := GetDonationRequestsCollection(db).Update(query, update)
+	err = GetDonationRequestsCollection(db).Update(query, update)
 	if err != nil {
 		log.E(l, "Failed to add donation.", func(cm log.CM) {
 			cm.Write(zap.Error(err))
@@ -120,6 +196,34 @@ func (d *DonationRequest) Donate(db *mgo.Database, player string, amount int, lo
 	log.D(l, "Donation added successfully.")
 
 	return nil
+}
+
+//ValidateDonationRequestLimit ensures that no more than the allowed number of cards has been donated
+func (d *DonationRequest) ValidateDonationRequestLimit(game *Game, logger zap.Logger) error {
+	item := game.Items[d.Item]
+	if d.GetDonationCount() >= item.LimitOfCardsInEachDonationRequest {
+		err := &errors.LimitOfCardsInDonationRequestReachedError{
+			GameID:            game.ID,
+			DonationRequestID: d.ID,
+		}
+		log.E(logger, err.Error(), func(cm log.CM) {
+			cm.Write(zap.Error(err))
+			cm.Write(zap.String("GameID", game.ID))
+			cm.Write(zap.String("DonationRequestID", d.ID))
+		})
+
+		return err
+	}
+	return nil
+}
+
+//GetDonationCount returns the total amount of donations
+func (d *DonationRequest) GetDonationCount() int {
+	sum := 0
+	for i := 0; i < len(d.Donations); i++ {
+		sum += d.Donations[i].Amount
+	}
+	return sum
 }
 
 //ToJSON returns the game as JSON
@@ -146,9 +250,9 @@ func GetDonationFromJSON(data []byte) (*Donation, error) {
 }
 
 //NewDonationRequest returns a new instance of DonationRequest
-func NewDonationRequest(game *Game, item, player, clan string) *DonationRequest {
+func NewDonationRequest(gameID string, item, player, clan string) *DonationRequest {
 	return &DonationRequest{
-		Game:   game,
+		GameID: gameID,
 		Item:   item,
 		Player: player,
 		Clan:   clan,

@@ -38,16 +38,8 @@ func easyjsonF464aa0aDecodeGithubComTopfreegamesDonationsModels(in *jlexer.Lexer
 			out.Player = string(in.String())
 		case "clan":
 			out.Clan = string(in.String())
-		case "game":
-			if in.IsNull() {
-				in.Skip()
-				out.Game = nil
-			} else {
-				if out.Game == nil {
-					out.Game = new(Game)
-				}
-				(*out.Game).UnmarshalEasyJSON(in)
-			}
+		case "gameID":
+			out.GameID = string(in.String())
 		case "donations":
 			if in.IsNull() {
 				in.Skip()
@@ -67,6 +59,12 @@ func easyjsonF464aa0aDecodeGithubComTopfreegamesDonationsModels(in *jlexer.Lexer
 				}
 				in.Delim(']')
 			}
+		case "createdAt":
+			out.CreatedAt = int64(in.Int64())
+		case "updatedAt":
+			out.UpdatedAt = int64(in.Int64())
+		case "finishedAt":
+			out.FinishedAt = int64(in.Int64())
 		default:
 			in.SkipRecursive()
 		}
@@ -106,12 +104,8 @@ func easyjsonF464aa0aEncodeGithubComTopfreegamesDonationsModels(out *jwriter.Wri
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"game\":")
-	if in.Game == nil {
-		out.RawString("null")
-	} else {
-		(*in.Game).MarshalEasyJSON(out)
-	}
+	out.RawString("\"gameID\":")
+	out.String(string(in.GameID))
 	if !first {
 		out.RawByte(',')
 	}
@@ -129,6 +123,24 @@ func easyjsonF464aa0aEncodeGithubComTopfreegamesDonationsModels(out *jwriter.Wri
 		}
 		out.RawByte(']')
 	}
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"createdAt\":")
+	out.Int64(int64(in.CreatedAt))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"updatedAt\":")
+	out.Int64(int64(in.UpdatedAt))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"finishedAt\":")
+	out.Int64(int64(in.FinishedAt))
 	out.RawByte('}')
 }
 

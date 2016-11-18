@@ -6,6 +6,11 @@ mongo:
   port: 27017
   db: donations
 
+redis:
+  url: redis://localhost:6379/0
+  maxIdle: 3
+  idleTimeoutSeconds: 240
+
 sentry:
   url: ""
 

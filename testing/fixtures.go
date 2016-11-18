@@ -11,7 +11,19 @@ import (
 )
 
 //GetTestGame to use in tests
-func GetTestGame(db *mgo.Database, logger zap.Logger, withItems bool) (*models.Game, error) {
+func GetTestGame(db *mgo.Database, logger zap.Logger, withItems bool, options ...map[string]interface{}) (*models.Game, error) {
+	opt := map[string]interface{}{
+		"LimitOfCardsInEachDonationRequest": 6,
+		"LimitOfCardsPerPlayerDonation":     2,
+		"WeightPerDonation":                 1,
+	}
+
+	if len(options) == 1 {
+		for key, val := range options[0] {
+			opt[key] = val
+		}
+	}
+
 	game := models.NewGame(
 		uuid.NewV4().String(), // Name
 		uuid.NewV4().String(), // ID
@@ -25,7 +37,13 @@ func GetTestGame(db *mgo.Database, logger zap.Logger, withItems bool) (*models.G
 
 	if withItems {
 		for i := 0; i < 10; i++ {
-			_, err = game.AddItem(fmt.Sprintf("item-%d", i), map[string]interface{}{"x": i}, i, i*2, i*3, db, logger)
+			_, err = game.AddItem(
+				fmt.Sprintf("item-%d", i), map[string]interface{}{"x": i},
+				opt["LimitOfCardsInEachDonationRequest"].(int),
+				opt["LimitOfCardsPerPlayerDonation"].(int),
+				opt["WeightPerDonation"].(int),
+				db, logger,
+			)
 			if err != nil {
 				return nil, err
 			}
@@ -37,7 +55,7 @@ func GetTestGame(db *mgo.Database, logger zap.Logger, withItems bool) (*models.G
 //GetTestDonationRequest to use in tests
 func GetTestDonationRequest(game *models.Game, db *mgo.Database, logger zap.Logger) (*models.DonationRequest, error) {
 	donationRequest := models.NewDonationRequest(
-		game,
+		game.ID,
 		GetFirstItem(game).Key,
 		uuid.NewV4().String(),
 		uuid.NewV4().String(),
@@ -46,7 +64,7 @@ func GetTestDonationRequest(game *models.Game, db *mgo.Database, logger zap.Logg
 	return donationRequest, err
 }
 
-//GetFirstItemInGame
+//GetFirstItem In Game
 func GetFirstItem(g *models.Game) *models.Item {
 	for _, v := range g.Items {
 		return &v

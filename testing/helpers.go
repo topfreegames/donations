@@ -9,14 +9,46 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"time"
 
 	mgo "gopkg.in/mgo.v2"
+	redsync "gopkg.in/redsync.v1"
 
+	"github.com/garyburd/redigo/redis"
 	"github.com/labstack/echo/engine/standard"
 	"github.com/onsi/gomega"
 	"github.com/topfreegames/donations/api"
 	"github.com/uber-go/zap"
 )
+
+//GetTestRedsync returns a configured redsync connection
+func GetTestRedsync() *redsync.Redsync {
+	return redsync.New([]redsync.Pool{
+		&redis.Pool{
+			MaxIdle:     3,
+			IdleTimeout: 240 * time.Second,
+			Dial: func() (redis.Conn, error) {
+				conn, err := redis.DialURL("redis://localhost:9998/1")
+				if err != nil {
+					return nil, err
+				}
+				return conn, nil
+			},
+			TestOnBorrow: func(c redis.Conn, t time.Time) error {
+				_, err := c.Do("PING")
+				if err != nil {
+					return err
+				}
+				return nil
+			},
+		},
+	})
+}
+
+//GetTestMutex returns a mutex for the name specified
+func GetTestMutex(name string, rs *redsync.Redsync) *redsync.Mutex {
+	return rs.NewMutex(name)
+}
 
 //GetTestMongoDB returns a test connection to mongo db
 func GetTestMongoDB() (*mgo.Session, *mgo.Database) {

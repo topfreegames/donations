@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/topfreegames/donations/log"
@@ -54,7 +55,7 @@ func CreateDonationRequestHandler(app *App) func(c echo.Context) error {
 
 			err = WithSegment("DonationRequest", c, func() error {
 				donationRequest = models.NewDonationRequest(
-					game,
+					game.ID,
 					payload.Item,
 					payload.Player,
 					payload.Clan,
@@ -132,7 +133,9 @@ func CreateDonationHandler(app *App) func(c echo.Context) error {
 				return err
 			}
 
-			err := donationRequest.Donate(app.MongoDb, payload.Player, payload.Amount, app.Logger)
+			mutex := app.GetMutex("Donate", 32, 8) // Number of retries to get lock and Lock expiration
+			err := donationRequest.Donate(payload.Player, payload.Amount, app.MongoDb, mutex, app.Logger)
+			fmt.Println(err)
 			if err != nil {
 				return err
 			}

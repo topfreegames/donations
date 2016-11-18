@@ -4,7 +4,12 @@ healthcheck:
 mongo:
   host: localhost
   port: 9999
-  db: ur-perf
+  db: donations-perf
+
+redis:
+  url: redis://localhost:6379/1
+  maxIdle: 3
+  idleTimeoutSeconds: 240
 
 sentry:
   url: ""

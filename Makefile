@@ -53,7 +53,7 @@ run: services
 run-basic: services
 	@go run main.go start --fast -d -c ./config/basicAuth.yaml
 
-test: update-version mongo-local-shutdown test-services test-migrate test-run test-coverage-func
+test: update-version test-services test-migrate test-run test-coverage-func
 
 test-run:
 	@ginkgo --cover -r .
@@ -97,14 +97,14 @@ schema-update:
 	@go generate ./models/*.go
 	@go generate ./api/payload.go
 
-run-test-donations: docker-services-shutdown mongo-local perf-migrate run-test-ci
+run-test-donations: docker-services-shutdown perf-migrate run-test-ci
 
 run-test-ci: build kill-test-donations
 	@rm -rf /tmp/donations-bench.log
 	@./bin/donations start -p 8080 -q --fast -c ./config/perf.yaml 2>&1 > /tmp/donations-bench.log &
 	@sleep 2
 
-run-test-donations-fg: build kill-test-donations mongo-local
+run-test-donations-fg: build kill-test-donations
 	@./bin/donations start -p 8080 -q --fast -c ./config/perf.yaml
 
 kill-test-donations:
@@ -139,15 +139,6 @@ docker-services-ci: docker-services-shutdown
 docker-services-ci-shutdown:
 	@docker-compose -p donations-ci -f ./docker-compose-ci.yml stop
 	@docker-compose -p donations-ci -f ./docker-compose-ci.yml rm -f
-
-mongo-local: mongo-local-shutdown
-	@rm -rf /tmp/donations-db
-	@mkdir -p /tmp/donations-db
-	@mongod --port 9999 --bind_ip 0.0.0.0 --fork --logpath /tmp/donations-db/mongo.log --dbpath /tmp/donations-db/
-
-mongo-local-shutdown:
-	@-mongo --port 9999 --eval "db.shutdownServer()" admin
-	@sleep 2
 
 rtfd: update-version
 	@rm -rf docs/_build

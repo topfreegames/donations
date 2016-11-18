@@ -5,6 +5,7 @@ import (
 	"time"
 
 	mgo "gopkg.in/mgo.v2"
+	redsync "gopkg.in/redsync.v1"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,6 +19,7 @@ var _ = Describe("Donation Model", func() {
 	var logger zap.Logger
 	var session *mgo.Session
 	var db *mgo.Database
+	var rs *redsync.Redsync
 
 	BeforeEach(func() {
 		logger = zap.New(
@@ -26,6 +28,7 @@ var _ = Describe("Donation Model", func() {
 		)
 
 		session, db = GetTestMongoDB()
+		rs = GetTestRedsync()
 	})
 	AfterEach(func() {
 		session.Close()
@@ -44,7 +47,7 @@ var _ = Describe("Donation Model", func() {
 				playerID := uuid.NewV4().String()
 				clanID := uuid.NewV4().String()
 				donationRequest := models.NewDonationRequest(
-					game,
+					game.ID,
 					itemKey,
 					playerID,
 					clanID,
@@ -59,10 +62,10 @@ var _ = Describe("Donation Model", func() {
 				Expect(dbDonationRequest.Item).To(Equal(itemKey))
 				Expect(dbDonationRequest.Player).To(Equal(playerID))
 				Expect(dbDonationRequest.Clan).To(Equal(clanID))
-				Expect(dbDonationRequest.Game).NotTo(BeNil())
-				Expect(dbDonationRequest.Game.ID).To(Equal(game.ID))
-				Expect(dbDonationRequest.CreatedAt.Unix()).To(BeNumerically(">", start.Unix()-10))
-				Expect(dbDonationRequest.UpdatedAt.Unix()).To(BeNumerically(">", start.Unix()-10))
+				Expect(dbDonationRequest.GameID).To(Equal(game.ID))
+				Expect(dbDonationRequest.CreatedAt).To(BeNumerically(">", start.Unix()-10))
+				Expect(dbDonationRequest.UpdatedAt).To(BeNumerically(">", start.Unix()-10))
+				Expect(dbDonationRequest.FinishedAt).To(BeEquivalentTo(0))
 			})
 
 			It("Should fail to create a new donation request without a game", func() {
@@ -70,14 +73,14 @@ var _ = Describe("Donation Model", func() {
 				playerID := uuid.NewV4().String()
 				clanID := uuid.NewV4().String()
 				donationRequest := models.NewDonationRequest(
-					nil,
+					"",
 					itemID,
 					playerID,
 					clanID,
 				)
 				err := donationRequest.Create(db, logger)
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("Game is required to create a new DonationRequest"))
+				Expect(err.Error()).To(ContainSubstring("GameID is required to create a new DonationRequest"))
 			})
 
 			It("Should fail to create a new donation request with invalid item", func() {
@@ -88,7 +91,7 @@ var _ = Describe("Donation Model", func() {
 				playerID := uuid.NewV4().String()
 				clanID := uuid.NewV4().String()
 				donationRequest := models.NewDonationRequest(
-					game,
+					game.ID,
 					itemID,
 					playerID,
 					clanID,
@@ -115,7 +118,7 @@ var _ = Describe("Donation Model", func() {
 					playerID := uuid.NewV4().String()
 					clanID := uuid.NewV4().String()
 					donationRequest := models.NewDonationRequest(
-						game,
+						game.ID,
 						itemKey,
 						playerID,
 						clanID,
@@ -124,8 +127,8 @@ var _ = Describe("Donation Model", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.5), "Operation shouldn't take this long.")
-			}, 500)
+				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.01), "Operation shouldn't take this long.")
+			}, 10)
 		})
 	})
 
@@ -139,7 +142,7 @@ var _ = Describe("Donation Model", func() {
 				playerID := uuid.NewV4().String()
 				clanID := uuid.NewV4().String()
 				donationRequest := models.NewDonationRequest(
-					game,
+					game.ID,
 					itemID,
 					playerID,
 					clanID,
@@ -148,56 +151,118 @@ var _ = Describe("Donation Model", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				donerID := uuid.NewV4().String()
-				err = donationRequest.Donate(db, donerID, 1, logger)
+				err = donationRequest.Donate(donerID, 1, db, GetTestMutex("donate", rs), logger)
 				Expect(err).NotTo(HaveOccurred())
 
-				var dbDonationRequest *models.DonationRequest
-				c := models.GetDonationRequestsCollection(db)
-				err = c.FindId(donationRequest.ID).One(&dbDonationRequest)
+				dbDonationRequest, err := models.GetDonationRequestByID(donationRequest.ID, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(dbDonationRequest.Donations).To(HaveLen(1))
 
 				Expect(dbDonationRequest.Donations[0].Player).To(Equal(donerID))
 				Expect(dbDonationRequest.Donations[0].Amount).To(Equal(1))
 			})
+
+			It("Should set the FinishedAt timestamp in the donation once the limit is reached", func() {
+				start := time.Now().UTC()
+				game, err := GetTestGame(db, logger, true, map[string]interface{}{
+					"LimitOfCardsInEachDonationRequest": 2,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				dr, err := GetTestDonationRequest(game, db, logger)
+
+				err = dr.Donate(uuid.NewV4().String(), 2, db, GetTestMutex("donate", rs), logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				dbDonationRequest, err := models.GetDonationRequestByID(dr.ID, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dbDonationRequest.FinishedAt).To(BeNumerically(">", start.Unix()-10))
+			})
+
+			It("Should respect the donation per donation request limit", func() {
+				game, err := GetTestGame(db, logger, true, map[string]interface{}{
+					"LimitOfCardsInEachDonationRequest": 2,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				dr, err := GetTestDonationRequest(game, db, logger)
+
+				err = dr.Donate(uuid.NewV4().String(), 2, db, GetTestMutex("donate", rs), logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = dr.Donate(uuid.NewV4().String(), 1, db, GetTestMutex("donate", rs), logger)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("This donation request is already finished."))
+			})
+
+			It("Should fail if no player to donate", func() {
+				game, err := GetTestGame(db, logger, true, map[string]interface{}{
+					"LimitOfCardsInEachDonationRequest": 2,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				dr, err := GetTestDonationRequest(game, db, logger)
+
+				err = dr.Donate("", 2, db, GetTestMutex("donate", rs), logger)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Player is required to create a new Donation."))
+			})
+
+			It("Should fail if zero items donated", func() {
+				game, err := GetTestGame(db, logger, true, map[string]interface{}{
+					"LimitOfCardsInEachDonationRequest": 2,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				dr, err := GetTestDonationRequest(game, db, logger)
+
+				err = dr.Donate(uuid.NewV4().String(), 0, db, GetTestMutex("donate", rs), logger)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Amount is required to create a new Donation."))
+			})
 		})
 
 		Describe("Measure", func() {
 			var game *models.Game
 			var donationRequest *models.DonationRequest
+			var mutex *redsync.Mutex
 			var err error
 
 			BeforeOnce(func() {
-				game, err = GetTestGame(db, logger, true)
+				game, err = GetTestGame(db, logger, true, map[string]interface{}{
+					"LimitOfCardsInEachDonationRequest": 10000,
+				})
 				Expect(err).NotTo(HaveOccurred())
 
 				itemID := GetFirstItem(game).Key
 				playerID := uuid.NewV4().String()
 				clanID := uuid.NewV4().String()
 				donationRequest = models.NewDonationRequest(
-					game,
+					game.ID,
 					itemID,
 					playerID,
 					clanID,
 				)
 				err = donationRequest.Create(db, logger)
 				Expect(err).NotTo(HaveOccurred())
+				mutex = GetTestMutex("donate", rs)
 			})
 
 			Measure("it should donate items fast", func(b Benchmarker) {
 				runtime := b.Time("runtime", func() {
 					donorID := uuid.NewV4().String()
 					err := donationRequest.Donate(
-						db,
 						donorID,
 						1,
+						db,
+						mutex,
 						logger,
 					)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.5), "Operation shouldn't take this long.")
-			}, 500)
+				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.01), "Operation shouldn't take this long.")
+			}, 5)
 		})
 	})
 
@@ -215,8 +280,7 @@ var _ = Describe("Donation Model", func() {
 				Expect(dbDonationRequest.Item).To(Equal(donationRequest.Item))
 				Expect(dbDonationRequest.Player).To(Equal(donationRequest.Player))
 				Expect(dbDonationRequest.Clan).To(Equal(donationRequest.Clan))
-				Expect(dbDonationRequest.Game).NotTo(BeNil())
-				Expect(dbDonationRequest.Game.ID).To(Equal(game.ID))
+				Expect(dbDonationRequest.GameID).To(Equal(game.ID))
 			})
 		})
 
@@ -237,8 +301,8 @@ var _ = Describe("Donation Model", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.5), "Operation shouldn't take this long.")
-			}, 500)
+				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.01), "Operation shouldn't take this long.")
+			}, 5)
 		})
 	})
 

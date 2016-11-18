@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	mgo "gopkg.in/mgo.v2"
+	redsync "gopkg.in/redsync.v1"
 
+	"github.com/garyburd/redigo/redis"
 	raven "github.com/getsentry/raven-go"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine"
@@ -15,8 +18,8 @@ import (
 	"github.com/labstack/echo/middleware"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/spf13/viper"
+	"github.com/topfreegames/donations/log"
 	"github.com/uber-go/zap"
-	fh "github.com/valyala/fasthttp"
 )
 
 // App is a struct that represents a Donations Api APP
@@ -33,7 +36,7 @@ type App struct {
 	Logger       zap.Logger
 	Background   bool
 	Fast         bool
-	Client       *fh.Client
+	Redsync      *redsync.Redsync
 	NewRelic     newrelic.Application
 }
 
@@ -73,8 +76,6 @@ func (app *App) Configure() error {
 		return err
 	}
 
-	app.Client = &fh.Client{}
-
 	return nil
 }
 
@@ -103,7 +104,7 @@ func (app *App) configureNewRelic() error {
 
 	config := newrelic.NewConfig(appName, newRelicKey)
 	if newRelicKey == "" {
-		l.Info("New Relic is not enabled..")
+		log.I(l, "New Relic is not enabled..")
 		config.Enabled = false
 	}
 	nr, err := newrelic.NewApplication(config)
@@ -166,6 +167,56 @@ func (app *App) OnErrorHandler(err error, stack []byte) {
 		"type":   "panic",
 	}
 	raven.CaptureError(e, tags)
+}
+
+func (app *App) configureRedsync() error {
+	redisURL := app.Config.GetString("redis.url")
+	maxIdle := app.Config.GetInt("redis.maxIdle")
+	timeoutSeconds := app.Config.GetInt("redis.idleTimeoutSeconds")
+	l := app.Logger.With(
+		zap.String("operation", "configureRedsync"),
+		zap.String("redis.url", app.Config.GetString("redis.url")),
+	)
+
+	app.Redsync = redsync.New([]redsync.Pool{
+		&redis.Pool{
+			MaxIdle:     maxIdle,
+			IdleTimeout: time.Duration(timeoutSeconds) * time.Second,
+			Dial: func() (redis.Conn, error) {
+				log.I(l, "Connecting to redis...")
+				conn, err := redis.DialURL(redisURL)
+				if err != nil {
+					log.E(l, "Failed to connect to redis.", func(cm log.CM) {
+						cm.Write(zap.Error(err))
+					})
+					return nil, err
+				}
+				return conn, nil
+			},
+			TestOnBorrow: func(c redis.Conn, t time.Time) error {
+				log.I(l, "Pinging redis...")
+				_, err := c.Do("PING")
+				if err != nil {
+					log.E(l, "Failed to ping redis.", func(cm log.CM) {
+						cm.Write(zap.Error(err))
+					})
+					return err
+				}
+				return nil
+			},
+		},
+	})
+
+	return nil
+}
+
+func (app *App) GetMutex(name string, retries, timeout int) *redsync.Mutex {
+	options := []redsync.Option{
+		redsync.SetTries(retries),
+		redsync.SetExpiry(time.Duration(timeout) * time.Second),
+	}
+	mutex := app.Redsync.NewMutex(name, options...)
+	return mutex
 }
 
 func (app *App) configureMongoDB() error {
@@ -264,6 +315,7 @@ func (app *App) configureApplication() error {
 	a.Post("/games/:gameID/donation-requests/:donationRequestID", CreateDonationHandler(app))
 
 	app.configureMongoDB()
+	app.configureRedsync()
 
 	l.Debug("Application configured successfully.")
 

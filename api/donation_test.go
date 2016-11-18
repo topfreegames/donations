@@ -59,7 +59,7 @@ var _ = Describe("Game Handler", func() {
 				Expect(dr.Player).To(Equal(playerID))
 				Expect(dr.Item).To(Equal(itemID))
 				Expect(dr.Clan).To(Equal(clanID))
-				Expect(dr.Game.ID).To(Equal(game.ID))
+				Expect(dr.GameID).To(Equal(game.ID))
 			})
 		})
 	})

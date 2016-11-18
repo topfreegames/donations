@@ -1,5 +1,5 @@
-hash: 746a2871c53c922498c8e00fb4b7fe52961cd3093602846371a6e9fc5d229a50
-updated: 2016-11-16T15:40:01.118009453-02:00
+hash: af8490db4302cfa5ca9cc1b73976c311d42b4cd293bbba4f886c059a9dee0003
+updated: 2016-11-18T00:51:16.956307426-02:00
 imports:
 - name: github.com/certifi/gocertifi
   version: a61bf5eafa3aee233ec8043e9da052447e5463dd
@@ -7,6 +7,11 @@ imports:
   version: 24c63f56522a87ec5339cc3567883f1039378fdb
 - name: github.com/fsnotify/fsnotify
   version: 944cff21b3baf3ced9a880365682152ba577d348
+- name: github.com/garyburd/redigo
+  version: 8873b2f1995f59d4bcdd2b0dc9858e2cb9bf0c13
+  subpackages:
+  - internal
+  - redis
 - name: github.com/getsentry/raven-go
   version: 379f8d0a68ca237cf8893a1cdfd4f574125e2c51
 - name: github.com/hashicorp/go-version
@@ -67,7 +72,7 @@ imports:
 - name: github.com/mitchellh/mapstructure
   version: ca63d7c062ee3c9f34db231e352b60012b4fd0c1
 - name: github.com/newrelic/go-agent
-  version: 372845e16294c9fa73951b27d5631b601643fc51
+  version: 7d12ae2201fc160e486197614a6f65afcf3f8170
   subpackages:
   - internal
   - internal/jsonx
@@ -170,6 +175,8 @@ imports:
   - internal/json
   - internal/sasl
   - internal/scram
+- name: gopkg.in/redsync.v1
+  version: 98dabdf1c8574561bf976911c14ff652c47b1ddf
 - name: gopkg.in/yaml.v2
   version: a5b47d31c556af34a302ce5d659e6fea44d90de0
 testImports: []
