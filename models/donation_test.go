@@ -151,7 +151,7 @@ var _ = Describe("Donation Model", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				donerID := uuid.NewV4().String()
-				err = donationRequest.Donate(donerID, 1, db, GetTestMutex("donate", rs), logger)
+				err = donationRequest.Donate(donerID, 1, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 
 				dbDonationRequest, err := models.GetDonationRequestByID(donationRequest.ID, db, logger)
@@ -171,7 +171,7 @@ var _ = Describe("Donation Model", func() {
 
 				dr, err := GetTestDonationRequest(game, db, logger)
 
-				err = dr.Donate(uuid.NewV4().String(), 2, db, GetTestMutex("donate", rs), logger)
+				err = dr.Donate(uuid.NewV4().String(), 2, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 
 				dbDonationRequest, err := models.GetDonationRequestByID(dr.ID, db, logger)
@@ -187,10 +187,10 @@ var _ = Describe("Donation Model", func() {
 
 				dr, err := GetTestDonationRequest(game, db, logger)
 
-				err = dr.Donate(uuid.NewV4().String(), 2, db, GetTestMutex("donate", rs), logger)
+				err = dr.Donate(uuid.NewV4().String(), 2, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = dr.Donate(uuid.NewV4().String(), 1, db, GetTestMutex("donate", rs), logger)
+				err = dr.Donate(uuid.NewV4().String(), 1, db, logger)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("This donation request is already finished."))
 			})
@@ -203,7 +203,7 @@ var _ = Describe("Donation Model", func() {
 
 				dr, err := GetTestDonationRequest(game, db, logger)
 
-				err = dr.Donate("", 2, db, GetTestMutex("donate", rs), logger)
+				err = dr.Donate("", 2, db, logger)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("Player is required to create a new Donation."))
 			})
@@ -216,7 +216,7 @@ var _ = Describe("Donation Model", func() {
 
 				dr, err := GetTestDonationRequest(game, db, logger)
 
-				err = dr.Donate(uuid.NewV4().String(), 0, db, GetTestMutex("donate", rs), logger)
+				err = dr.Donate(uuid.NewV4().String(), 0, db, logger)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("Amount is required to create a new Donation."))
 			})
@@ -225,7 +225,6 @@ var _ = Describe("Donation Model", func() {
 		Describe("Measure", func() {
 			var game *models.Game
 			var donationRequest *models.DonationRequest
-			var mutex *redsync.Mutex
 			var err error
 
 			BeforeOnce(func() {
@@ -245,7 +244,6 @@ var _ = Describe("Donation Model", func() {
 				)
 				err = donationRequest.Create(db, logger)
 				Expect(err).NotTo(HaveOccurred())
-				mutex = GetTestMutex("donate", rs)
 			})
 
 			Measure("it should donate items fast", func(b Benchmarker) {
@@ -255,7 +253,6 @@ var _ = Describe("Donation Model", func() {
 						donorID,
 						1,
 						db,
-						mutex,
 						logger,
 					)
 					Expect(err).NotTo(HaveOccurred())

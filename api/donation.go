@@ -107,6 +107,7 @@ func CreateDonationHandler(app *App) func(c echo.Context) error {
 			zap.String("operation", "CreateDonation"),
 		)
 		c.Set("route", "CreateDonation")
+		gameID := c.Param("gameID")
 		donationRequestID := c.Param("donationRequestID")
 
 		log.D(l, "Creating donation...")
@@ -128,14 +129,23 @@ func CreateDonationHandler(app *App) func(c echo.Context) error {
 
 		var donationRequest *models.DonationRequest
 		err = WithSegment("model", c, func() error {
+			mutexID := fmt.Sprintf("Donate-%s-%s", gameID, donationRequestID)
+			mutex := app.GetMutex(mutexID, 32, 8) // Number of retries to get lock and Lock expiration
+			err := mutex.Lock()
+			if err != nil {
+				log.E(l, "Could not acquire lock after many retries.", func(cm log.CM) {
+					cm.Write(zap.Error(err))
+				})
+				return err
+			}
+			defer mutex.Unlock()
+
 			donationRequest, err = models.GetDonationRequestByID(donationRequestID, app.MongoDb, app.Logger)
 			if err != nil {
 				return err
 			}
 
-			mutex := app.GetMutex("Donate", 32, 8) // Number of retries to get lock and Lock expiration
-			err := donationRequest.Donate(payload.Player, payload.Amount, app.MongoDb, mutex, app.Logger)
-			fmt.Println(err)
+			err = donationRequest.Donate(payload.Player, payload.Amount, app.MongoDb, app.Logger)
 			if err != nil {
 				return err
 			}

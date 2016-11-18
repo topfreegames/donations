@@ -14,7 +14,6 @@ import (
 	"github.com/uber-go/zap"
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	redsync "gopkg.in/redsync.v1"
 )
 
 //Donation represents a specific donation a player made to a request
@@ -106,7 +105,7 @@ func (d *DonationRequest) Create(db *mgo.Database, logger zap.Logger) error {
 }
 
 //Donate an item in a given Donation Request
-func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, mutex *redsync.Mutex, logger zap.Logger) error {
+func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, logger zap.Logger) error {
 	l := logger.With(
 		zap.String("source", "DonationRequestModel"),
 		zap.String("operation", "Donate"),
@@ -140,16 +139,6 @@ func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, mu
 	game, err := d.GetGame(db, logger)
 	if err != nil {
 		log.E(l, "DonationRequest must be loaded", func(cm log.CM) {
-			cm.Write(zap.Error(err))
-		})
-
-		return err
-	}
-
-	err = mutex.Lock()
-	defer mutex.Unlock()
-	if err != nil {
-		log.E(l, "Could not acquire lock for donation after many retries.", func(cm log.CM) {
 			cm.Write(zap.Error(err))
 		})
 
