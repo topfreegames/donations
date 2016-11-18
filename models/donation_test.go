@@ -83,6 +83,23 @@ var _ = Describe("Donation Model", func() {
 				Expect(err.Error()).To(ContainSubstring("GameID is required to create a new DonationRequest"))
 			})
 
+			It("Should fail to create a new donation request with null item", func() {
+				game, err := GetTestGame(db, logger, true)
+				Expect(err).NotTo(HaveOccurred())
+
+				playerID := uuid.NewV4().String()
+				clanID := uuid.NewV4().String()
+				donationRequest := models.NewDonationRequest(
+					game.ID,
+					"",
+					playerID,
+					clanID,
+				)
+				err = donationRequest.Create(db, logger)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Item is required to create a new DonationRequest"))
+			})
+
 			It("Should fail to create a new donation request with invalid item", func() {
 				game, err := GetTestGame(db, logger, true)
 				Expect(err).NotTo(HaveOccurred())
@@ -127,7 +144,7 @@ var _ = Describe("Donation Model", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.01), "Operation shouldn't take this long.")
+				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.1), "Operation shouldn't take this long.")
 			}, 10)
 		})
 	})
@@ -179,6 +196,19 @@ var _ = Describe("Donation Model", func() {
 				Expect(dbDonationRequest.FinishedAt).To(BeNumerically(">", start.Unix()-10))
 			})
 
+			It("Should respect the donation per donation request limit max items", func() {
+				game, err := GetTestGame(db, logger, true, map[string]interface{}{
+					"LimitOfCardsInEachDonationRequest": 2,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				dr, err := GetTestDonationRequest(game, db, logger)
+
+				err = dr.Donate(uuid.NewV4().String(), 3, db, logger)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("This donation request can't accept this donation."))
+			})
+
 			It("Should respect the donation per donation request limit", func() {
 				game, err := GetTestGame(db, logger, true, map[string]interface{}{
 					"LimitOfCardsInEachDonationRequest": 2,
@@ -192,7 +222,21 @@ var _ = Describe("Donation Model", func() {
 
 				err = dr.Donate(uuid.NewV4().String(), 1, db, logger)
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("This donation request is already finished."))
+				Expect(err.Error()).To(ContainSubstring("This donation request can't accept this donation."))
+			})
+
+			It("Should fail if DonationRequest is not loaded", func() {
+				game, err := GetTestGame(db, logger, true, map[string]interface{}{
+					"LimitOfCardsInEachDonationRequest": 2,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				itemID := GetFirstItem(game).Key
+				dr := models.NewDonationRequest(game.ID, itemID, uuid.NewV4().String(), uuid.NewV4().String())
+
+				err = dr.Donate(uuid.NewV4().String(), 2, db, logger)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Can't donate without a proper DB-loaded DonationRequest (ID is required)."))
 			})
 
 			It("Should fail if no player to donate", func() {
@@ -258,7 +302,7 @@ var _ = Describe("Donation Model", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.01), "Operation shouldn't take this long.")
+				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.1), "Operation shouldn't take this long.")
 			}, 5)
 		})
 	})
@@ -279,6 +323,19 @@ var _ = Describe("Donation Model", func() {
 				Expect(dbDonationRequest.Clan).To(Equal(donationRequest.Clan))
 				Expect(dbDonationRequest.GameID).To(Equal(game.ID))
 			})
+
+			It("Should fail if donation request does not exist", func() {
+				_, err := GetTestGame(db, logger, true)
+				Expect(err).NotTo(HaveOccurred())
+
+				drID := uuid.NewV4().String()
+				dbDonationRequest, err := models.GetDonationRequestByID(drID, db, logger)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal(
+					fmt.Sprintf("Document with id %s was not found in collection donationRequest.", drID),
+				))
+				Expect(dbDonationRequest).To(BeNil())
+			})
 		})
 
 		Describe("Measure", func() {
@@ -298,9 +355,8 @@ var _ = Describe("Donation Model", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.01), "Operation shouldn't take this long.")
+				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.1), "Operation shouldn't take this long.")
 			}, 5)
 		})
 	})
-
 })

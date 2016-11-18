@@ -62,7 +62,7 @@ test-coverage:
 	@rm -rf _build
 	@mkdir -p _build
 	@echo "mode: count" > _build/test-coverage-all.out
-	@bash -c 'for f in $$(find . -name "*.coverprofile"); do tail -n +2 $$f >> _build/test-coverage-all.out; done'
+	@bash -c 'find . -name "*.coverprofile" | xargs tail -n +2 | egrep -v "\=\=>" | egrep -v "^$$" >> _build/test-coverage-all.out'
 
 test-coverage-html: test-coverage
 	@go tool cover -html=_build/test-coverage-all.out

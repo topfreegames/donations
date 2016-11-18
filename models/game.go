@@ -97,7 +97,6 @@ func (g *Game) AddItem(
 	return item, nil
 }
 
-//ToJSON returns the game as JSON
 func (g *Game) ToJSON() ([]byte, error) {
 	w := jwriter.Writer{}
 	g.MarshalEasyJSON(&w)

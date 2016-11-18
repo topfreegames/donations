@@ -48,9 +48,10 @@ type LimitOfCardsInDonationRequestReachedError struct {
 	GameID            string
 	DonationRequestID string
 	ItemKey           string
+	Amount            int
 }
 
 //Error string
 func (err LimitOfCardsInDonationRequestReachedError) Error() string {
-	return "This donation request is already finished."
+	return "This donation request can't accept this donation."
 }

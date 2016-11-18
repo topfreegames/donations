@@ -34,6 +34,25 @@ var _ = Describe("Game Model", func() {
 
 	Describe("Saving a game", func() {
 		Describe("Feature", func() {
+			It("Should create a new game and generate id", func() {
+				game := &models.Game{
+					Name: uuid.NewV4().String(),
+					DonationCooldownHours:        1,
+					DonationRequestCooldownHours: 2,
+				}
+				err := game.Save(db, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(game.ID).NotTo(BeEmpty())
+
+				var dbGame *models.Game
+				err = db.C("games").FindId(game.ID).One(&dbGame)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dbGame.Name).To(Equal(game.Name))
+				Expect(dbGame.ID).To(Equal(game.ID))
+				Expect(dbGame.DonationCooldownHours).To(Equal(1))
+				Expect(dbGame.DonationRequestCooldownHours).To(Equal(2))
+			})
+
 			It("Should create a new game", func() {
 				game := models.NewGame(
 					uuid.NewV4().String(),
@@ -110,7 +129,7 @@ var _ = Describe("Game Model", func() {
 				})
 
 				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.5), "Operation shouldn't take this long.")
-			}, 500)
+			}, 5)
 
 			Measure("it should update games fast", func(b Benchmarker) {
 				i++
@@ -121,7 +140,7 @@ var _ = Describe("Game Model", func() {
 				})
 
 				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.5), "Operation shouldn't take this long.")
-			}, 500)
+			}, 5)
 		})
 	})
 
@@ -167,7 +186,7 @@ var _ = Describe("Game Model", func() {
 				})
 
 				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.5), "Operation shouldn't take this long.")
-			}, 200)
+			}, 5)
 		})
 	})
 
@@ -274,7 +293,7 @@ var _ = Describe("Game Model", func() {
 				})
 
 				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.5), "Operation shouldn't take this long.")
-			}, 500)
+			}, 5)
 		})
 	})
 })

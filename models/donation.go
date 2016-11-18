@@ -194,6 +194,8 @@ func (d *DonationRequest) ValidateDonationRequestLimit(game *Game, amount int, l
 		err := &errors.LimitOfCardsInDonationRequestReachedError{
 			GameID:            game.ID,
 			DonationRequestID: d.ID,
+			ItemKey:           d.Item,
+			Amount:            amount,
 		}
 		log.E(logger, err.Error(), func(cm log.CM) {
 			cm.Write(zap.Error(err))
