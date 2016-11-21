@@ -156,7 +156,8 @@ func CreateDonationHandler(app *App) func(c echo.Context) error {
 				return err
 			}
 
-			err = donationRequest.Donate(payload.Player, payload.Amount, app.MongoDb, app.Logger)
+			donationRequestCooldownHours := app.Config.GetInt("api.donationRequestCooldownHours")
+			err = donationRequest.Donate(payload.Player, payload.Amount, donationRequestCooldownHours, app.MongoDb, app.Logger)
 			if err != nil {
 				return err
 			}

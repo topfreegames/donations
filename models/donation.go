@@ -218,15 +218,15 @@ func (d *DonationRequest) validateDonationInputs(player string, amount int, logg
 }
 
 //Donate an item in a given Donation Request
-func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, logger zap.Logger) error {
+func (d *DonationRequest) Donate(playerID string, amount, playerDonationWindowHours int, db *mgo.Database, logger zap.Logger) error {
 	l := logger.With(
 		zap.String("source", "DonationRequestModel"),
 		zap.String("operation", "Donate"),
-		zap.String("player", player),
+		zap.String("player", playerID),
 		zap.Int("amount", amount),
 	)
 
-	err := d.validateDonationInputs(player, amount, logger)
+	err := d.validateDonationInputs(playerID, amount, logger)
 	if err != nil {
 		return err
 	}
@@ -234,6 +234,15 @@ func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, lo
 	game, err := d.GetGame(db, logger)
 	if err != nil {
 		log.E(l, "DonationRequest must be loaded", func(cm log.CM) {
+			cm.Write(zap.Error(err))
+		})
+
+		return err
+	}
+
+	player, err := GetPlayerByID(playerID, db, logger)
+	if err != nil {
+		log.E(l, "Could not find player.", func(cm log.CM) {
 			cm.Write(zap.Error(err))
 		})
 
@@ -249,7 +258,7 @@ func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, lo
 		return err
 	}
 
-	err = d.ValidateDonationRequestLimitPerPlayer(game, player, amount, logger)
+	err = d.ValidateDonationRequestLimitPerPlayer(game, playerID, amount, logger)
 	if err != nil {
 		log.E(l, err.Error(), func(cm log.CM) {
 			cm.Write(zap.Error(err))
@@ -258,7 +267,7 @@ func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, lo
 		return err
 	}
 
-	d.Donations = append(d.Donations, Donation{Player: player, Amount: amount})
+	d.Donations = append(d.Donations, Donation{Player: playerID, Amount: amount})
 
 	set := bson.M{
 		"updatedAt": d.Clock.GetUTCTime().Unix(),
@@ -270,19 +279,52 @@ func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, lo
 	}
 
 	log.D(l, "Saving donation...")
+	err = d.insertDonationAndUpdatePlayer(player, amount, game, playerDonationWindowHours, db, l)
+	if err != nil {
+		log.E(l, err.Error(), func(cm log.CM) {
+			cm.Write(zap.Error(err))
+		})
+
+		return err
+	}
+
+	log.D(l, "Donation added successfully.")
+
+	return nil
+}
+
+func (d *DonationRequest) insertDonationAndUpdatePlayer(
+	player *Player, amount int,
+	game *Game, playerDonationWindowHours int,
+	db *mgo.Database, l zap.Logger,
+) error {
+	log.D(l, "Saving donation...")
+
+	txID := uuid.NewV4().String()
+
+	set := bson.M{
+		"updatedAt": d.Clock.GetUTCTime().Unix(),
+	}
+
+	item := game.Items[d.Item]
+	if d.GetDonationCount()+amount >= item.LimitOfCardsInEachDonationRequest {
+		set["finishedAt"] = d.Clock.GetUTCTime().Unix()
+	}
+
 	query := bson.M{"_id": d.ID}
 	update := bson.M{
 		"$set": set,
 		"$push": bson.M{"donations": bson.M{
 			"_id":       uuid.NewV4().String(),
-			"player":    player,
+			"player":    player.ID,
 			"amount":    amount,
 			"weight":    item.WeightPerDonation,
 			"createdAt": d.Clock.GetUTCTime().Unix(),
+			"txID":      txID,
 		}},
 	}
 
-	err = GetDonationRequestsCollection(db).Update(query, update)
+	err := GetDonationRequestsCollection(db).Update(query, update)
 	if err != nil {
 		log.E(l, "Failed to add donation.", func(cm log.CM) {
 			cm.Write(zap.Error(err))
@@ -290,15 +332,30 @@ func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, lo
 		return err
 	}
 
-	err = UpdateDonationWindowStart(game.ID, player, time.Now().UTC().Unix(), db, logger)
-	if err != nil {
-		log.E(l, "Failed to set player update window start.", func(cm log.CM) {
-			cm.Write(zap.Error(err))
-		})
-		return err
-	}
+	//Number of seconds in playerDonationWindowHours
+	cooldown := int((time.Duration(playerDonationWindowHours) * time.Hour).Seconds())
 
-	log.D(l, "Donation added successfully.")
+	//If player.DonationWindowStart is zero, player has never donated before
+	noWindow := player.DonationWindowStart == 0
+
+	//Amount of seconds elapsed since player donation window started
+	//If player has no donation window, this will be ignored
+	windowElapsed := int(d.Clock.GetUTCTime().Unix() - player.DonationWindowStart)
+
+	//If no window found for player or last window is older than player window cooldown, update it
+	if noWindow || windowElapsed > cooldown {
+		err = UpdateDonationWindowStart(game.ID, player.ID, d.Clock.GetUTCTime().Unix(), db, l)
+		if err != nil {
+			log.E(l, "Failed to set player update window start.", func(cm log.CM) {
+				cm.Write(zap.Error(err))
+			})
+			err = GetDonationRequestsCollection(db).Update(
+				bson.M{"_id": d.ID},
+				bson.M{"$pull": bson.M{"donations": bson.M{"$eq": []string{"txID", txID}}}},
+			)
+			return err
+		}
+	}
 
 	return nil
 }

@@ -73,7 +73,7 @@ func GetTestPlayer(game *models.Game, db *mgo.Database, logger zap.Logger) (*mod
 		uuid.NewV4().String(),
 		0,
 	)
-	err := models.GetDonationRequestsCollection(db).Insert(player)
+	err := models.GetPlayersCollection(db).Insert(player)
 	return player, err
 }
 

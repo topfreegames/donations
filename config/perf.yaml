@@ -15,11 +15,8 @@ sentry:
   url: ""
 
 api:
+  donationRequestCooldownHours: 8
   maxReadBufferSize: 80240
-  authenticateProvider: false
   basicAuth:
     user: ""
     pass: ""
-  providers:
-    gamecenter:
-      timeout: 600

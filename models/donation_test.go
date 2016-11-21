@@ -155,28 +155,32 @@ var _ = Describe("Donation Model", func() {
 				game, err := GetTestGame(db, logger, true)
 				Expect(err).NotTo(HaveOccurred())
 
+				player, err := GetTestPlayer(game, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				doner, err := GetTestPlayer(game, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
 				item := GetFirstItem(game)
 				itemID := item.Key
-				playerID := uuid.NewV4().String()
 				clanID := uuid.NewV4().String()
 				donationRequest := models.NewDonationRequest(
 					game.ID,
 					itemID,
-					playerID,
+					player.ID,
 					clanID,
 				)
 				err = donationRequest.Create(db, logger)
 				Expect(err).NotTo(HaveOccurred())
 
-				donerID := uuid.NewV4().String()
-				err = donationRequest.Donate(donerID, 1, db, logger)
+				err = donationRequest.Donate(doner.ID, 1, 1, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 
 				dbDonationRequest, err := models.GetDonationRequestByID(donationRequest.ID, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(dbDonationRequest.Donations).To(HaveLen(1))
 
-				Expect(dbDonationRequest.Donations[0].Player).To(Equal(donerID))
+				Expect(dbDonationRequest.Donations[0].Player).To(Equal(doner.ID))
 				Expect(dbDonationRequest.Donations[0].Amount).To(Equal(1))
 				Expect(dbDonationRequest.Donations[0].Weight).To(Equal(item.WeightPerDonation))
 			})
@@ -188,9 +192,12 @@ var _ = Describe("Donation Model", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 
+				player, err := GetTestPlayer(game, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
 				dr, err := GetTestDonationRequest(game, db, logger)
 
-				err = dr.Donate(uuid.NewV4().String(), 2, db, logger)
+				err = dr.Donate(player.ID, 2, 1, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 
 				dbDonationRequest, err := models.GetDonationRequestByID(dr.ID, db, logger)
@@ -205,15 +212,45 @@ var _ = Describe("Donation Model", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 
+				player, err := GetTestPlayer(game, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
 				dr, err := GetTestDonationRequest(game, db, logger)
 
-				playerID := uuid.NewV4().String()
-				err = dr.Donate(playerID, 2, db, logger)
+				playerID := player.ID
+				err = dr.Donate(playerID, 2, 1, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 
-				player, err := models.GetPlayerByID(playerID, db, logger)
+				dbPlayer, err := models.GetPlayerByID(playerID, db, logger)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(player.DonationWindowStart).To(BeNumerically(">", start.Unix()-10))
+				Expect(dbPlayer.DonationWindowStart).To(BeNumerically(">", start.Unix()-10))
+			})
+
+			It("Should not update the DonationWindowStart timestamp when already set", func() {
+				game, err := GetTestGame(db, logger, true, map[string]interface{}{
+					"LimitOfCardsInEachDonationRequest": 4,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				player, err := GetTestPlayer(game, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				clock := &MockClock{Time: 100}
+				dr, err := GetTestDonationRequest(game, db, logger)
+				dr.Clock = clock
+
+				playerID := player.ID
+				err = dr.Donate(playerID, 1, 1, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				clock.Time = 1000
+
+				err = dr.Donate(playerID, 1, 1, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				dbPlayer, err := models.GetPlayerByID(playerID, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dbPlayer.DonationWindowStart).To(Equal(int64(100)))
 			})
 
 			It("Should respect the donation per donation request limit max items", func() {
@@ -222,9 +259,12 @@ var _ = Describe("Donation Model", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 
+				player, err := GetTestPlayer(game, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
 				dr, err := GetTestDonationRequest(game, db, logger)
 
-				err = dr.Donate(uuid.NewV4().String(), 3, db, logger)
+				err = dr.Donate(player.ID, 3, 1, db, logger)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("This donation request can't accept this donation."))
 			})
@@ -235,12 +275,15 @@ var _ = Describe("Donation Model", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				dr, err := GetTestDonationRequest(game, db, logger)
-
-				err = dr.Donate(uuid.NewV4().String(), 2, db, logger)
+				player, err := GetTestPlayer(game, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = dr.Donate(uuid.NewV4().String(), 1, db, logger)
+				dr, err := GetTestDonationRequest(game, db, logger)
+
+				err = dr.Donate(player.ID, 2, 1, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = dr.Donate(player.ID, 1, 1, db, logger)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("This donation request can't accept this donation."))
 			})
@@ -254,15 +297,21 @@ var _ = Describe("Donation Model", func() {
 
 				dr, err := GetTestDonationRequest(game, db, logger)
 
-				pID := uuid.NewV4().String()
-				err = dr.Donate(pID, 1, db, logger)
+				player, err := GetTestPlayer(game, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 
-				p2ID := uuid.NewV4().String()
-				err = dr.Donate(p2ID, 1, db, logger)
+				player2, err := GetTestPlayer(game, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = dr.Donate(pID, 1, db, logger)
+				pID := player.ID
+				err = dr.Donate(pID, 1, 1, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				p2ID := player2.ID
+				err = dr.Donate(p2ID, 1, 1, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = dr.Donate(pID, 1, 1, db, logger)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring(
 					"This donation request can't accept any more donations from this player.",
@@ -276,10 +325,13 @@ var _ = Describe("Donation Model", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 
+				player, err := GetTestPlayer(game, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
 				dr, err := GetTestDonationRequest(game, db, logger)
 
-				pID := uuid.NewV4().String()
-				err = dr.Donate(pID, 2, db, logger)
+				pID := player.ID
+				err = dr.Donate(pID, 2, 1, db, logger)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring(
 					"This donation request can't accept any more donations from this player.",
@@ -326,7 +378,7 @@ var _ = Describe("Donation Model", func() {
 				itemID := GetFirstItem(game).Key
 				dr := models.NewDonationRequest(game.ID, itemID, uuid.NewV4().String(), uuid.NewV4().String())
 
-				err = dr.Donate(uuid.NewV4().String(), 2, db, logger)
+				err = dr.Donate(uuid.NewV4().String(), 2, 1, db, logger)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("Can't donate without a proper DB-loaded DonationRequest (ID is required)."))
 			})
@@ -339,7 +391,7 @@ var _ = Describe("Donation Model", func() {
 
 				dr, err := GetTestDonationRequest(game, db, logger)
 
-				err = dr.Donate("", 2, db, logger)
+				err = dr.Donate("", 2, 1, db, logger)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("Player is required to create a new Donation."))
 			})
@@ -352,7 +404,7 @@ var _ = Describe("Donation Model", func() {
 
 				dr, err := GetTestDonationRequest(game, db, logger)
 
-				err = dr.Donate(uuid.NewV4().String(), 0, db, logger)
+				err = dr.Donate(uuid.NewV4().String(), 0, 1, db, logger)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("Amount is required to create a new Donation."))
 			})
@@ -362,12 +414,22 @@ var _ = Describe("Donation Model", func() {
 			var game *models.Game
 			var donationRequest *models.DonationRequest
 			var err error
+			var players []*models.Player
+			var playerCount int
 
 			BeforeOnce(func() {
+				playerCount = 0
 				game, err = GetTestGame(db, logger, true, map[string]interface{}{
 					"LimitOfCardsInEachDonationRequest": 10000,
 				})
 				Expect(err).NotTo(HaveOccurred())
+
+				players = make([]*models.Player, 5)
+				for i := 0; i < 5; i++ {
+					player, err := GetTestPlayer(game, db, logger)
+					Expect(err).NotTo(HaveOccurred())
+					players[i] = player
+				}
 
 				itemID := GetFirstItem(game).Key
 				playerID := uuid.NewV4().String()
@@ -384,14 +446,16 @@ var _ = Describe("Donation Model", func() {
 
 			Measure("it should donate items fast", func(b Benchmarker) {
 				runtime := b.Time("runtime", func() {
-					donorID := uuid.NewV4().String()
+					donorID := players[playerCount].ID
 					err := donationRequest.Donate(
 						donorID,
+						1,
 						1,
 						db,
 						logger,
 					)
 					Expect(err).NotTo(HaveOccurred())
+					playerCount++
 				})
 
 				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.1), "Operation shouldn't take this long.")
@@ -461,21 +525,24 @@ var _ = Describe("Donation Model", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 
+				player, err := GetTestPlayer(game, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
 				clock := &MockClock{Time: 100}
 				dr, err := GetTestDonationRequest(game, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 				dr.Clock = clock
 
-				donerID := uuid.NewV4().String()
+				donerID := player.ID
 
 				for i := 0; i < 10; i++ {
-					err = dr.Donate(donerID, 1, db, logger)
+					err = dr.Donate(donerID, 1, 1, db, logger)
 					Expect(err).NotTo(HaveOccurred())
 				}
 
 				clock.Time = 500
 
-				err = dr.Donate(donerID, 1, db, logger)
+				err = dr.Donate(donerID, 1, 1, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 
 				weight, err := models.GetDonationWeightForPlayer(donerID, 300, 500, db, logger)
@@ -491,15 +558,18 @@ var _ = Describe("Donation Model", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 
+				player, err := GetTestPlayer(game, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
 				clock := &MockClock{Time: 100}
 				dr, err := GetTestDonationRequest(game, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 				dr.Clock = clock
 
-				donerID := uuid.NewV4().String()
+				donerID := player.ID
 
 				for i := 0; i < 10; i++ {
-					err = dr.Donate(donerID, 1, db, logger)
+					err = dr.Donate(donerID, 1, 1, db, logger)
 					Expect(err).NotTo(HaveOccurred())
 				}
 
@@ -520,15 +590,18 @@ var _ = Describe("Donation Model", func() {
 					"LimitOfCardsPerPlayerDonation":     5000,
 				})
 
+				player, err := GetTestPlayer(game, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
 				clock := &MockClock{Time: 100}
 				donationRequest, err = GetTestDonationRequest(game, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 				donationRequest.Clock = clock
 
-				donerID = uuid.NewV4().String()
+				donerID = player.ID
 
 				for i := 0; i < 100; i++ {
-					err = donationRequest.Donate(donerID, 1, db, logger)
+					err = donationRequest.Donate(donerID, 1, 1, db, logger)
 					Expect(err).NotTo(HaveOccurred())
 				}
 			})
