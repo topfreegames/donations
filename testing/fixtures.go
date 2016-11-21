@@ -66,6 +66,17 @@ func GetTestDonationRequest(game *models.Game, db *mgo.Database, logger zap.Logg
 	return donationRequest, err
 }
 
+//GetTestPlayer to use in tests
+func GetTestPlayer(game *models.Game, db *mgo.Database, logger zap.Logger) (*models.Player, error) {
+	player := models.NewPlayer(
+		game.ID,
+		uuid.NewV4().String(),
+		0,
+	)
+	err := models.GetDonationRequestsCollection(db).Insert(player)
+	return player, err
+}
+
 //GetFirstItem In Game
 func GetFirstItem(g *models.Game) *models.Item {
 	for _, v := range g.Items {

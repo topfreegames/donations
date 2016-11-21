@@ -155,7 +155,8 @@ var _ = Describe("Donation Model", func() {
 				game, err := GetTestGame(db, logger, true)
 				Expect(err).NotTo(HaveOccurred())
 
-				itemID := GetFirstItem(game).Key
+				item := GetFirstItem(game)
+				itemID := item.Key
 				playerID := uuid.NewV4().String()
 				clanID := uuid.NewV4().String()
 				donationRequest := models.NewDonationRequest(
@@ -177,6 +178,7 @@ var _ = Describe("Donation Model", func() {
 
 				Expect(dbDonationRequest.Donations[0].Player).To(Equal(donerID))
 				Expect(dbDonationRequest.Donations[0].Amount).To(Equal(1))
+				Expect(dbDonationRequest.Donations[0].Weight).To(Equal(item.WeightPerDonation))
 			})
 
 			It("Should set the FinishedAt timestamp in the donation once the limit is reached", func() {
@@ -194,6 +196,24 @@ var _ = Describe("Donation Model", func() {
 				dbDonationRequest, err := models.GetDonationRequestByID(dr.ID, db, logger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(dbDonationRequest.FinishedAt).To(BeNumerically(">", start.Unix()-10))
+			})
+
+			It("Should set the DonationWindowStart timestamp", func() {
+				start := time.Now().UTC()
+				game, err := GetTestGame(db, logger, true, map[string]interface{}{
+					"LimitOfCardsInEachDonationRequest": 2,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				dr, err := GetTestDonationRequest(game, db, logger)
+
+				playerID := uuid.NewV4().String()
+				err = dr.Donate(playerID, 2, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				player, err := models.GetPlayerByID(playerID, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(player.DonationWindowStart).To(BeNumerically(">", start.Unix()-10))
 			})
 
 			It("Should respect the donation per donation request limit max items", func() {
@@ -428,6 +448,98 @@ var _ = Describe("Donation Model", func() {
 				})
 
 				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.1), "Operation shouldn't take this long.")
+			}, 5)
+		})
+	})
+
+	Describe("Getting player donation weight", func() {
+		Describe("Feature", func() {
+			It("Should get player donation weight", func() {
+				game, err := GetTestGame(db, logger, true, map[string]interface{}{
+					"LimitOfCardsInEachDonationRequest": 22,
+					"LimitOfCardsPerPlayerDonation":     50,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				clock := &MockClock{Time: 100}
+				dr, err := GetTestDonationRequest(game, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+				dr.Clock = clock
+
+				donerID := uuid.NewV4().String()
+
+				for i := 0; i < 10; i++ {
+					err = dr.Donate(donerID, 1, db, logger)
+					Expect(err).NotTo(HaveOccurred())
+				}
+
+				clock.Time = 500
+
+				err = dr.Donate(donerID, 1, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				weight, err := models.GetDonationWeightForPlayer(donerID, 300, 500, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(weight).To(Equal(1))
+			})
+
+			It("Should get player donation weight as zero when no donations found", func() {
+				game, err := GetTestGame(db, logger, true, map[string]interface{}{
+					"LimitOfCardsInEachDonationRequest": 22,
+					"LimitOfCardsPerPlayerDonation":     50,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				clock := &MockClock{Time: 100}
+				dr, err := GetTestDonationRequest(game, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+				dr.Clock = clock
+
+				donerID := uuid.NewV4().String()
+
+				for i := 0; i < 10; i++ {
+					err = dr.Donate(donerID, 1, db, logger)
+					Expect(err).NotTo(HaveOccurred())
+				}
+
+				weight, err := models.GetDonationWeightForPlayer(donerID, 300, 500, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(weight).To(Equal(0))
+			})
+		})
+
+		Describe("Measure", func() {
+			var donationRequest *models.DonationRequest
+			var donerID string
+
+			BeforeOnce(func() {
+				game, err := GetTestGame(db, logger, true, map[string]interface{}{
+					"LimitOfCardsInEachDonationRequest": 2200,
+					"LimitOfCardsPerPlayerDonation":     5000,
+				})
+
+				clock := &MockClock{Time: 100}
+				donationRequest, err = GetTestDonationRequest(game, db, logger)
+				Expect(err).NotTo(HaveOccurred())
+				donationRequest.Clock = clock
+
+				donerID = uuid.NewV4().String()
+
+				for i := 0; i < 100; i++ {
+					err = donationRequest.Donate(donerID, 1, db, logger)
+					Expect(err).NotTo(HaveOccurred())
+				}
+			})
+
+			Measure("it should get player weight fast", func(b Benchmarker) {
+				runtime := b.Time("runtime", func() {
+					_, err := models.GetDonationWeightForPlayer(donerID, 100, 100, db, logger)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				Expect(runtime.Seconds()).Should(BeNumerically("<", 0.05), "Operation shouldn't take this long.")
 			}, 5)
 		})
 	})

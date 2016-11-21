@@ -48,10 +48,10 @@ func (i *Item) ToJSON() ([]byte, error) {
 	return w.BuildBytes()
 }
 
-//GetItemFromJSON unmarshals the donation request from the specified JSON
+//GetItemFromJSON unmarshals the item from the specified JSON
 func GetItemFromJSON(data []byte) (*Item, error) {
-	donationRequest := &Item{}
+	obj := &Item{}
 	l := jlexer.Lexer{Data: data}
-	donationRequest.UnmarshalEasyJSON(&l)
-	return donationRequest, l.Error()
+	obj.UnmarshalEasyJSON(&l)
+	return obj, l.Error()
 }

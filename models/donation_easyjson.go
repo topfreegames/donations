@@ -47,7 +47,7 @@ func easyjsonF464aa0aDecodeGithubComTopfreegamesDonationsModels(in *jlexer.Lexer
 			} else {
 				in.Delim('[')
 				if !in.IsDelim(']') {
-					out.Donations = make([]Donation, 0, 2)
+					out.Donations = make([]Donation, 0, 1)
 				} else {
 					out.Donations = []Donation{}
 				}
@@ -168,10 +168,16 @@ func easyjsonF464aa0aDecodeGithubComTopfreegamesDonationsModels1(in *jlexer.Lexe
 			continue
 		}
 		switch key {
+		case "id":
+			out.ID = string(in.String())
 		case "player":
 			out.Player = string(in.String())
 		case "amount":
 			out.Amount = int(in.Int())
+		case "weight":
+			out.Weight = int(in.Int())
+		case "createdAt":
+			out.CreatedAt = int64(in.Int64())
 		default:
 			in.SkipRecursive()
 		}
@@ -187,6 +193,12 @@ func easyjsonF464aa0aEncodeGithubComTopfreegamesDonationsModels1(out *jwriter.Wr
 		out.RawByte(',')
 	}
 	first = false
+	out.RawString("\"id\":")
+	out.String(string(in.ID))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
 	out.RawString("\"player\":")
 	out.String(string(in.Player))
 	if !first {
@@ -195,6 +207,18 @@ func easyjsonF464aa0aEncodeGithubComTopfreegamesDonationsModels1(out *jwriter.Wr
 	first = false
 	out.RawString("\"amount\":")
 	out.Int(int(in.Amount))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"weight\":")
+	out.Int(int(in.Weight))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"createdAt\":")
+	out.Int64(int64(in.CreatedAt))
 	out.RawByte('}')
 }
 

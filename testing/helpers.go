@@ -52,19 +52,19 @@ func GetTestMutex(name string, rs *redsync.Redsync) *redsync.Mutex {
 
 //GetTestMongoDB returns a test connection to mongo db
 func GetTestMongoDB() (*mgo.Session, *mgo.Database) {
-	return getMongoDB("localhost", "9999", "ur-test")
+	return getMongoDB("localhost", "9999", "donations-test")
 }
 
 //GetPerfMongoDB returns a test connection to PERF mongo db
 func GetPerfMongoDB() (*mgo.Session, *mgo.Database) {
-	return getMongoDB("localhost", "9999", "ur-perf")
+	return getMongoDB("localhost", "9999", "donations-perf")
 }
 func getMongoDB(host, port, db string) (*mgo.Session, *mgo.Database) {
-	hostEnv := os.Getenv("UR_MONGO_HOST")
+	hostEnv := os.Getenv("DONATIONS_MONGO_HOST")
 	if hostEnv != "" {
 		host = hostEnv
 	}
-	portEnv := os.Getenv("UR_MONGO_PORT")
+	portEnv := os.Getenv("DONATIONS_MONGO_PORT")
 	if portEnv != "" {
 		port = portEnv
 	}
@@ -79,14 +79,8 @@ func getMongoDB(host, port, db string) (*mgo.Session, *mgo.Database) {
 	return session, database
 }
 
-//GetConfPath for the environment we're in
 func GetConfPath() string {
-	pgHost := os.Getenv("TEST_PG_HOST")
 	conf := "../config/test.yaml"
-	if pgHost != "" {
-		conf = "../config/ci.yaml"
-	}
-
 	return conf
 }
 

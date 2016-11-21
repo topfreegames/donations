@@ -32,8 +32,11 @@ func (r *RealClock) GetUTCTime() time.Time {
 //Donation represents a specific donation a player made to a request
 //easyjson:json
 type Donation struct {
-	Player string `json:"player" bson:"player"`
-	Amount int    `json:"amount" bson:"amount"`
+	ID        string `json:"id" bson:"_id,omitempty"`
+	Player    string `json:"player" bson:"player"`
+	Amount    int    `json:"amount" bson:"amount"`
+	Weight    int    `json:"weight" bson:"weight"`
+	CreatedAt int64  `json:"createdAt" bson:"createdAt"`
 }
 
 //DonationRequest represents a request for an item donation a player made in a game
@@ -261,7 +264,8 @@ func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, lo
 		"updatedAt": d.Clock.GetUTCTime().Unix(),
 	}
 
-	if d.GetDonationCount()+amount >= game.Items[d.Item].LimitOfCardsInEachDonationRequest {
+	item := game.Items[d.Item]
+	if d.GetDonationCount()+amount >= item.LimitOfCardsInEachDonationRequest {
 		set["finishedAt"] = d.Clock.GetUTCTime().Unix()
 	}
 
@@ -270,14 +274,25 @@ func (d *DonationRequest) Donate(player string, amount int, db *mgo.Database, lo
 	update := bson.M{
 		"$set": set,
 		"$push": bson.M{"donations": bson.M{
-			"player": player,
-			"amount": amount,
+			"_id":       uuid.NewV4().String(),
+			"player":    player,
+			"amount":    amount,
+			"weight":    item.WeightPerDonation,
+			"createdAt": d.Clock.GetUTCTime().Unix(),
 		}},
 	}
 
 	err = GetDonationRequestsCollection(db).Update(query, update)
 	if err != nil {
 		log.E(l, "Failed to add donation.", func(cm log.CM) {
+			cm.Write(zap.Error(err))
+		})
+		return err
+	}
+
+	err = UpdateDonationWindowStart(game.ID, player, time.Now().UTC().Unix(), db, logger)
+	if err != nil {
+		log.E(l, "Failed to set player update window start.", func(cm log.CM) {
 			cm.Write(zap.Error(err))
 		})
 		return err
@@ -393,4 +408,53 @@ func GetDonationRequestByID(id string, db *mgo.Database, logger zap.Logger) (*Do
 	}
 	donationRequest.Clock = &RealClock{}
 	return &donationRequest, nil
+}
+
+//GetDonationWeightForPlayer returns the donation weight for a given player in a given interval
+func GetDonationWeightForPlayer(playerID string, from, to int64, db *mgo.Database, logger zap.Logger) (int, error) {
+	coll := GetDonationRequestsCollection(db)
+
+	query := []bson.M{
+		bson.M{
+			"$match": bson.M{
+				"donations.player":    playerID,
+				"donations.createdAt": bson.M{"$gte": from, "$lte": to},
+			},
+		},
+		bson.M{"$unwind": "$donations"},
+		bson.M{
+			"$project": bson.M{
+				"_id":       "$donations._id",
+				"player":    "$donations.player",
+				"weight":    "$donations.weight",
+				"amount":    "$donations.amount",
+				"createdAt": "$donations.createdAt",
+			},
+		},
+		bson.M{
+			"$match": bson.M{
+				"createdAt": bson.M{"$gte": from, "$lte": to},
+			},
+		},
+		bson.M{
+			"$group": bson.M{
+				"_id":         "$player",
+				"player":      bson.M{"$first": "$player"},
+				"totalWeight": bson.M{"$sum": "$weight"},
+			},
+		},
+	}
+
+	pipe := coll.Pipe(query)
+	resp := []bson.M{}
+	err := pipe.All(&resp)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(resp) == 0 {
+		return 0, nil
+	}
+
+	return resp[0]["totalWeight"].(int), nil
 }
