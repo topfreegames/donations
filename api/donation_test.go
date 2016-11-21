@@ -71,13 +71,17 @@ var _ = Describe("Game Handler", func() {
 				game, err := GetTestGame(app.MongoDb, app.Logger, true)
 				Expect(err).NotTo(HaveOccurred())
 
+				player, err := GetTestPlayer(game, app.MongoDb, app.Logger)
+				Expect(err).NotTo(HaveOccurred())
+
 				donation, err := GetTestDonationRequest(game, app.MongoDb, app.Logger)
 				Expect(err).NotTo(HaveOccurred())
 
-				playerID := uuid.NewV4().String()
+				playerID := player.ID
 				payload := &api.DonationPayload{
-					Player: playerID,
-					Amount: 1,
+					Player:             playerID,
+					Amount:             1,
+					MaxWeightPerPlayer: 50,
 				}
 				jsonPayload, err := payload.ToJSON()
 				Expect(err).NotTo(HaveOccurred())
@@ -104,8 +108,9 @@ var _ = Describe("Game Handler", func() {
 
 				playerID := uuid.NewV4().String()
 				payload := &api.DonationPayload{
-					Player: playerID,
-					Amount: 1,
+					Player:             playerID,
+					Amount:             1,
+					MaxWeightPerPlayer: 50,
 				}
 				jsonPayload, err := payload.ToJSON()
 				Expect(err).NotTo(HaveOccurred())

@@ -138,11 +138,17 @@ func CreateDonationHandler(app *App) func(c echo.Context) error {
 			return FailWith(400, err.Error(), c)
 		}
 
+		err = models.EnsurePlayerExists(gameID, payload.Player, app.MongoDb, app.Logger)
+		if err != nil {
+			return FailWith(500, err.Error(), c)
+		}
+
 		var donationRequest *models.DonationRequest
 		err = WithSegment("model", c, func() error {
 			mutexID := fmt.Sprintf("Donate-%s-%s", gameID, donationRequestID)
 			mutex := app.GetMutex(mutexID, 32, 8) // Number of retries to get lock and Lock expiration
 			err := mutex.Lock()
+
 			if err != nil {
 				log.E(l, "Could not acquire lock after many retries.", func(cm log.CM) {
 					cm.Write(zap.Error(err))
