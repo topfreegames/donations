@@ -141,6 +141,8 @@ func easyjsonA8a797f8DecodeGithubComTopfreegamesDonationsApi1(in *jlexer.Lexer, 
 			out.Player = string(in.String())
 		case "amount":
 			out.Amount = int(in.Int())
+		case "maxWeightPerPlayer":
+			out.MaxWeightPerPlayer = int(in.Int())
 		default:
 			in.SkipRecursive()
 		}
@@ -164,6 +166,12 @@ func easyjsonA8a797f8EncodeGithubComTopfreegamesDonationsApi1(out *jwriter.Write
 	first = false
 	out.RawString("\"amount\":")
 	out.Int(int(in.Amount))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"maxWeightPerPlayer\":")
+	out.Int(int(in.MaxWeightPerPlayer))
 	out.RawByte('}')
 }
 

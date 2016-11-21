@@ -29,8 +29,8 @@ func GetTestGame(db *mgo.Database, logger zap.Logger, withItems bool, options ..
 	game := models.NewGame(
 		uuid.NewV4().String(),                     // Name
 		uuid.NewV4().String(),                     // ID
-		opt["DonationRequestCooldownHours"].(int), // DonationRequestCooldownHours
 		opt["DonationCooldownHours"].(int),        // DonationCooldownHours
+		opt["DonationRequestCooldownHours"].(int), // DonationRequestCooldownHours
 	)
 	err := game.Save(db, logger)
 	if err != nil {

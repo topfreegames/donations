@@ -15,7 +15,6 @@ sentry:
   url: ""
 
 api:
-  donationRequestCooldownHours: 8
   maxReadBufferSize: 80240
   basicAuth:
     user: ""

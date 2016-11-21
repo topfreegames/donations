@@ -217,8 +217,36 @@ func (d *DonationRequest) validateDonationInputs(player string, amount int, logg
 	return nil
 }
 
+func (d *DonationRequest) validateDonationCooldownPerPlayer(
+	game *Game, player *Player, maxWeightPerPlayer int,
+	db *mgo.Database, logger zap.Logger,
+) error {
+	cooldown := int((time.Duration(game.DonationCooldownHours) * time.Hour).Seconds())
+	windowElapsed := int(d.Clock.GetUTCTime().Unix() - player.DonationWindowStart)
+	if player.DonationWindowStart == 0 || windowElapsed > cooldown {
+		return nil
+	}
+
+	from := player.DonationWindowStart
+	to := d.Clock.GetUTCTime().Unix()
+
+	totalWeight, err := GetDonationWeightForPlayer(player.ID, from, to, db, logger)
+	if err != nil {
+		return err
+	}
+	if totalWeight >= maxWeightPerPlayer {
+		return &errors.DonationCooldownViolatedError{
+			GameID:               game.ID,
+			PlayerID:             player.ID,
+			TotalWeightForPeriod: totalWeight,
+			MaxWeightForPerior:   maxWeightPerPlayer,
+		}
+	}
+	return nil
+}
+
 //Donate an item in a given Donation Request
-func (d *DonationRequest) Donate(playerID string, amount, playerDonationWindowHours int, db *mgo.Database, logger zap.Logger) error {
+func (d *DonationRequest) Donate(playerID string, amount, maxWeightPerPlayer int, db *mgo.Database, logger zap.Logger) error {
 	l := logger.With(
 		zap.String("source", "DonationRequestModel"),
 		zap.String("operation", "Donate"),
@@ -267,19 +295,17 @@ func (d *DonationRequest) Donate(playerID string, amount, playerDonationWindowHo
 		return err
 	}
 
-	d.Donations = append(d.Donations, Donation{Player: playerID, Amount: amount})
+	err = d.validateDonationCooldownPerPlayer(game, player, maxWeightPerPlayer, db, logger)
+	if err != nil {
+		log.E(l, err.Error(), func(cm log.CM) {
+			cm.Write(zap.Error(err))
+		})
 
-	set := bson.M{
-		"updatedAt": d.Clock.GetUTCTime().Unix(),
-	}
-
-	item := game.Items[d.Item]
-	if d.GetDonationCount()+amount >= item.LimitOfCardsInEachDonationRequest {
-		set["finishedAt"] = d.Clock.GetUTCTime().Unix()
+		return err
 	}
 
 	log.D(l, "Saving donation...")
-	err = d.insertDonationAndUpdatePlayer(player, amount, game, playerDonationWindowHours, db, l)
+	err = d.insertDonationAndUpdatePlayer(player, amount, game, db, l)
 	if err != nil {
 		log.E(l, err.Error(), func(cm log.CM) {
 			cm.Write(zap.Error(err))
@@ -295,12 +321,15 @@ func (d *DonationRequest) Donate(playerID string, amount, playerDonationWindowHo
 
 func (d *DonationRequest) insertDonationAndUpdatePlayer(
 	player *Player, amount int,
-	game *Game, playerDonationWindowHours int,
+	game *Game,
 	db *mgo.Database, l zap.Logger,
 ) error {
 	log.D(l, "Saving donation...")
 
 	txID := uuid.NewV4().String()
+
+	donation := Donation{Player: player.ID, Amount: amount}
+	d.Donations = append(d.Donations, donation)
 
 	set := bson.M{
 		"updatedAt": d.Clock.GetUTCTime().Unix(),
@@ -326,6 +355,7 @@ func (d *DonationRequest) insertDonationAndUpdatePlayer(
 
 	err := GetDonationRequestsCollection(db).Update(query, update)
 	if err != nil {
+		d.Donations = d.Donations[:len(d.Donations)-1]
 		log.E(l, "Failed to add donation.", func(cm log.CM) {
 			cm.Write(zap.Error(err))
 		})
@@ -333,7 +363,7 @@ func (d *DonationRequest) insertDonationAndUpdatePlayer(
 	}
 
 	//Number of seconds in playerDonationWindowHours
-	cooldown := int((time.Duration(playerDonationWindowHours) * time.Hour).Seconds())
+	cooldown := int((time.Duration(game.DonationCooldownHours) * time.Hour).Seconds())
 
 	//If player.DonationWindowStart is zero, player has never donated before
 	noWindow := player.DonationWindowStart == 0
@@ -346,6 +376,7 @@ func (d *DonationRequest) insertDonationAndUpdatePlayer(
 	if noWindow || windowElapsed > cooldown {
 		err = UpdateDonationWindowStart(game.ID, player.ID, d.Clock.GetUTCTime().Unix(), db, l)
 		if err != nil {
+			d.Donations = d.Donations[:len(d.Donations)-1]
 			log.E(l, "Failed to set player update window start.", func(cm log.CM) {
 				cm.Write(zap.Error(err))
 			})

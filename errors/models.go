@@ -83,3 +83,17 @@ type DonationRequestCooldownViolatedError struct {
 func (err DonationRequestCooldownViolatedError) Error() string {
 	return "This player can't create a new donation request so soon."
 }
+
+//DonationCooldownViolatedError happens when a donation request
+//is created in less than <cooldown> hours after last one
+type DonationCooldownViolatedError struct {
+	GameID               string
+	PlayerID             string
+	TotalWeightForPeriod int
+	MaxWeightForPerior   int
+}
+
+//Error string
+func (err DonationCooldownViolatedError) Error() string {
+	return "This player can't donate so soon."
+}

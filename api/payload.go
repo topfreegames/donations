@@ -126,8 +126,9 @@ func (cdrp *CreateDonationRequestPayload) ToJSON() ([]byte, error) {
 
 //DonationPayload maps the payload for the Create Game route
 type DonationPayload struct {
-	Player string `json:"player"`
-	Amount int    `json:"amount"`
+	Player             string `json:"player"`
+	Amount             int    `json:"amount"`
+	MaxWeightPerPlayer int    `json:"maxWeightPerPlayer"`
 }
 
 //Validate all the required fields for creating a game
@@ -135,6 +136,7 @@ func (dp *DonationPayload) Validate() []string {
 	v := NewValidation()
 	v.validateRequiredString("player", dp.Player)
 	v.validateRequiredInt("amount", dp.Amount)
+	v.validateRequiredInt("maxWeightPerPlayer", dp.MaxWeightPerPlayer)
 	return v.Errors()
 }
 
