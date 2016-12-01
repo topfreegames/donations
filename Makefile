@@ -1,5 +1,6 @@
 .PHONY: docs db
 
+MY_IP=`ifconfig | grep --color=none -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep --color=none -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1' | head -n 1`
 PACKAGES = $(shell glide novendor)
 OS = "$(shell uname | awk '{ print tolower($$0) }')"
 
@@ -34,8 +35,15 @@ cross:
 	@chmod +x bin/*
 
 docker-build:
-	@mkdir -p ./_build/docker
 	@docker build -t donations -f Dockerfile .
+
+docker-run:
+	@echo "Running docker with MongoDB: ${MY_IP}:9999..."
+	@docker run -i -t --rm \
+		-e "DONATIONS_MONGO_HOST=${MY_IP}" \
+		-e "DONATIONS_MONGO_PORT=9999" \
+		-p 8888:8888 \
+		donations
 
 docker-services-dev: docker-services-shutdown
 	@docker-compose -p donations-dev -f ./docker-compose-dev.yml up -d

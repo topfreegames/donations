@@ -11,9 +11,7 @@ Donations uses MongoDB to store clans information. The container takes environme
 
 * `DONATIONS_MONGO_HOST` - MongoDB host to connect to;
 * `DONATIONS_MONGO_PORT` - MongoDB port to connect to;
-* `DONATIONS_MONGO_USER` - Password of the MongoDB Server to connect to;
-* `DONATIONS_MONGO_DBNAME` - Database name of the MongoDB Server to connect to;
-* `DONATIONS_MONGO_SSLMODE` - SSL Mode to connect to mongoDB with.
+* `DONATIONS_MONGO_DB` - Database name of the MongoDB Server to connect to.
 
 Donations uses Redis for global locks. The container takes environment variables to specify this connection:
 

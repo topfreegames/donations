@@ -2,8 +2,6 @@
 
 VERSION=$(cat version.txt | sed "s@donations v@@g")
 
-cp ./config/default.yaml ./dev
-
 docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
 
 docker build -t donations .
