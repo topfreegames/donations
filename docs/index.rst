@@ -18,7 +18,6 @@ Contents:
    hosting
    game
    API
-   benchmark
 
 
 Indices and tables
