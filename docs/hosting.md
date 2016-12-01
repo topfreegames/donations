@@ -15,6 +15,12 @@ Donations uses MongoDB to store clans information. The container takes environme
 * `DONATIONS_MONGO_DBNAME` - Database name of the MongoDB Server to connect to;
 * `DONATIONS_MONGO_SSLMODE` - SSL Mode to connect to mongoDB with.
 
+Donations uses Redis for global locks. The container takes environment variables to specify this connection:
+
+* `DONATIONS_REDIS_URL` - Redis URL to connect to;
+* `DONATIONS_REDIS_MAXIDLE` - Max Idle connection to Redis;
+* `DONATIONS_REDIS_IDLETIMEOUTSECONDS` - Number of seconds to consider a connection idle.
+
 Other than that, there are a couple more configurations you can pass using environment variables:
 
 * `DONATIONS_NEWRELIC_KEY` - If you have a [New Relic](https://newrelic.com/) account, you can use this variable to specify your API Key to populate data with New Relic API;
