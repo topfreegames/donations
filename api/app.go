@@ -93,7 +93,7 @@ func (app *App) configureNewRelic() error {
 	newRelicKey := app.Config.GetString("newrelic.key")
 	appName := app.Config.GetString("newrelic.appName")
 	if appName == "" {
-		appName = "Khan"
+		appName = "Donations"
 	}
 
 	l := app.Logger.With(
@@ -210,6 +210,7 @@ func (app *App) configureRedsync() error {
 	return nil
 }
 
+//GetMutex returns a lock for a given name
 func (app *App) GetMutex(name string, retries, timeout int) *redsync.Mutex {
 	options := []redsync.Option{
 		redsync.SetTries(retries),

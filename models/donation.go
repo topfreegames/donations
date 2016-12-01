@@ -336,7 +336,7 @@ func (d *DonationRequest) insertDonationAndUpdatePlayer(
 	}
 
 	item := game.Items[d.Item]
-	if d.GetDonationCount()+amount >= item.LimitOfCardsInEachDonationRequest {
+	if d.GetDonationCount()+amount >= item.LimitOfItemsInEachDonationRequest {
 		set["finishedAt"] = d.Clock.GetUTCTime().Unix()
 	}
 
@@ -391,11 +391,11 @@ func (d *DonationRequest) insertDonationAndUpdatePlayer(
 	return nil
 }
 
-//ValidateDonationRequestLimit ensures that no more than the allowed number of cards has been donated
+//ValidateDonationRequestLimit ensures that no more than the allowed number of donations has been donated
 func (d *DonationRequest) ValidateDonationRequestLimit(game *Game, amount int, logger zap.Logger) error {
 	item := game.Items[d.Item]
-	if d.GetDonationCount()+amount > item.LimitOfCardsInEachDonationRequest {
-		err := &errors.LimitOfCardsInDonationRequestReachedError{
+	if d.GetDonationCount()+amount > item.LimitOfItemsInEachDonationRequest {
+		err := &errors.LimitOfItemsInDonationRequestReachedError{
 			GameID:            game.ID,
 			DonationRequestID: d.ID,
 			ItemKey:           d.Item,
@@ -412,12 +412,12 @@ func (d *DonationRequest) ValidateDonationRequestLimit(game *Game, amount int, l
 	return nil
 }
 
-//ValidateDonationRequestLimitPerPlayer ensures that no more than the allowed number of cards has been donated per player
+//ValidateDonationRequestLimitPerPlayer ensures that no more than the allowed number of donations has been donated per player
 func (d *DonationRequest) ValidateDonationRequestLimitPerPlayer(game *Game, player string, amount int, logger zap.Logger) error {
 	item := game.Items[d.Item]
 	currentDonations := d.GetDonationCountForPlayer(player)
-	if currentDonations+amount > item.LimitOfCardsPerPlayerDonation {
-		err := &errors.LimitOfCardsPerPlayerInDonationRequestReachedError{
+	if currentDonations+amount > item.LimitOfItemsPerPlayerDonation {
+		err := &errors.LimitOfItemsPerPlayerInDonationRequestReachedError{
 			GameID:               game.ID,
 			DonationRequestID:    d.ID,
 			ItemKey:              d.Item,

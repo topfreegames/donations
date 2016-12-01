@@ -43,8 +43,8 @@ func (err ItemNotFoundInGameError) Error() string {
 	return fmt.Sprintf("Item %s was not found in game %s.", err.ItemKey, err.GameID)
 }
 
-//LimitOfCardsInDonationRequestReachedError happens when a donation happens for an item that's not in the game
-type LimitOfCardsInDonationRequestReachedError struct {
+//LimitOfItemsInDonationRequestReachedError happens when a donation happens for an item that's not in the game
+type LimitOfItemsInDonationRequestReachedError struct {
 	GameID            string
 	DonationRequestID string
 	ItemKey           string
@@ -52,12 +52,12 @@ type LimitOfCardsInDonationRequestReachedError struct {
 }
 
 //Error string
-func (err LimitOfCardsInDonationRequestReachedError) Error() string {
+func (err LimitOfItemsInDonationRequestReachedError) Error() string {
 	return "This donation request can't accept this donation."
 }
 
-//LimitOfCardsPerPlayerInDonationRequestReachedError happens when a donation happens for an item that's not in the game
-type LimitOfCardsPerPlayerInDonationRequestReachedError struct {
+//LimitOfItemsPerPlayerInDonationRequestReachedError happens when a donation happens for an item that's not in the game
+type LimitOfItemsPerPlayerInDonationRequestReachedError struct {
 	GameID               string
 	DonationRequestID    string
 	ItemKey              string
@@ -67,7 +67,7 @@ type LimitOfCardsPerPlayerInDonationRequestReachedError struct {
 }
 
 //Error string
-func (err LimitOfCardsPerPlayerInDonationRequestReachedError) Error() string {
+func (err LimitOfItemsPerPlayerInDonationRequestReachedError) Error() string {
 	return "This donation request can't accept any more donations from this player."
 }
 

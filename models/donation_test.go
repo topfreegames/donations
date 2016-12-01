@@ -189,7 +189,7 @@ var _ = Describe("Donation Model", func() {
 				It("Should set the FinishedAt timestamp in the donation once the limit is reached", func() {
 					start := time.Now().UTC()
 					game, err := GetTestGame(db, logger, true, map[string]interface{}{
-						"LimitOfCardsInEachDonationRequest": 2,
+						"LimitOfItemsInEachDonationRequest": 2,
 					})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -208,7 +208,7 @@ var _ = Describe("Donation Model", func() {
 
 				It("Should fail if DonationRequest is not loaded", func() {
 					game, err := GetTestGame(db, logger, true, map[string]interface{}{
-						"LimitOfCardsInEachDonationRequest": 2,
+						"LimitOfItemsInEachDonationRequest": 2,
 					})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -222,7 +222,7 @@ var _ = Describe("Donation Model", func() {
 
 				It("Should fail if no player to donate", func() {
 					game, err := GetTestGame(db, logger, true, map[string]interface{}{
-						"LimitOfCardsInEachDonationRequest": 2,
+						"LimitOfItemsInEachDonationRequest": 2,
 					})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -235,7 +235,7 @@ var _ = Describe("Donation Model", func() {
 
 				It("Should fail if zero items donated", func() {
 					game, err := GetTestGame(db, logger, true, map[string]interface{}{
-						"LimitOfCardsInEachDonationRequest": 2,
+						"LimitOfItemsInEachDonationRequest": 2,
 					})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -251,7 +251,7 @@ var _ = Describe("Donation Model", func() {
 				It("Should set the DonationWindowStart timestamp", func() {
 					start := time.Now().UTC()
 					game, err := GetTestGame(db, logger, true, map[string]interface{}{
-						"LimitOfCardsInEachDonationRequest": 2,
+						"LimitOfItemsInEachDonationRequest": 2,
 					})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -271,7 +271,7 @@ var _ = Describe("Donation Model", func() {
 
 				It("Should not update the DonationWindowStart timestamp when already set", func() {
 					game, err := GetTestGame(db, logger, true, map[string]interface{}{
-						"LimitOfCardsInEachDonationRequest": 4,
+						"LimitOfItemsInEachDonationRequest": 4,
 					})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -300,7 +300,7 @@ var _ = Describe("Donation Model", func() {
 			Describe("Donations per donation request limit", func() {
 				It("Should respect the donation per donation request limit max items", func() {
 					game, err := GetTestGame(db, logger, true, map[string]interface{}{
-						"LimitOfCardsInEachDonationRequest": 2,
+						"LimitOfItemsInEachDonationRequest": 2,
 					})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -316,7 +316,7 @@ var _ = Describe("Donation Model", func() {
 
 				It("Should respect the donation per donation request limit", func() {
 					game, err := GetTestGame(db, logger, true, map[string]interface{}{
-						"LimitOfCardsInEachDonationRequest": 2,
+						"LimitOfItemsInEachDonationRequest": 2,
 					})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -337,8 +337,8 @@ var _ = Describe("Donation Model", func() {
 			Describe("Max Donations per Player in each Donation Request", func() {
 				It("Should respect the donation per player per donation request limit", func() {
 					game, err := GetTestGame(db, logger, true, map[string]interface{}{
-						"LimitOfCardsInEachDonationRequest": 5,
-						"LimitOfCardsPerPlayerDonation":     1,
+						"LimitOfItemsInEachDonationRequest": 5,
+						"LimitOfItemsPerPlayerDonation":     1,
 					})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -367,8 +367,8 @@ var _ = Describe("Donation Model", func() {
 
 				It("Should respect the donation per player per donation request limit max items", func() {
 					game, err := GetTestGame(db, logger, true, map[string]interface{}{
-						"LimitOfCardsInEachDonationRequest": 5,
-						"LimitOfCardsPerPlayerDonation":     1,
+						"LimitOfItemsInEachDonationRequest": 5,
+						"LimitOfItemsPerPlayerDonation":     1,
 					})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -482,7 +482,7 @@ var _ = Describe("Donation Model", func() {
 			BeforeOnce(func() {
 				playerCount = 0
 				game, err = GetTestGame(db, logger, true, map[string]interface{}{
-					"LimitOfCardsInEachDonationRequest": 10000,
+					"LimitOfItemsInEachDonationRequest": 10000,
 				})
 				Expect(err).NotTo(HaveOccurred())
 
@@ -582,8 +582,8 @@ var _ = Describe("Donation Model", func() {
 		Describe("Feature", func() {
 			It("Should get player donation weight", func() {
 				game, err := GetTestGame(db, logger, true, map[string]interface{}{
-					"LimitOfCardsInEachDonationRequest": 22,
-					"LimitOfCardsPerPlayerDonation":     50,
+					"LimitOfItemsInEachDonationRequest": 22,
+					"LimitOfItemsPerPlayerDonation":     50,
 					"DonationCooldownHours":             1,
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -616,8 +616,8 @@ var _ = Describe("Donation Model", func() {
 
 			It("Should get player donation weight as zero when no donations found", func() {
 				game, err := GetTestGame(db, logger, true, map[string]interface{}{
-					"LimitOfCardsInEachDonationRequest": 22,
-					"LimitOfCardsPerPlayerDonation":     50,
+					"LimitOfItemsInEachDonationRequest": 22,
+					"LimitOfItemsPerPlayerDonation":     50,
 				})
 				Expect(err).NotTo(HaveOccurred())
 
@@ -649,8 +649,8 @@ var _ = Describe("Donation Model", func() {
 
 			BeforeOnce(func() {
 				game, err := GetTestGame(db, logger, true, map[string]interface{}{
-					"LimitOfCardsInEachDonationRequest": 2200,
-					"LimitOfCardsPerPlayerDonation":     5000,
+					"LimitOfItemsInEachDonationRequest": 2200,
+					"LimitOfItemsPerPlayerDonation":     5000,
 				})
 
 				player, err := GetTestPlayer(game, db, logger)

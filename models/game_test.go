@@ -214,8 +214,8 @@ var _ = Describe("Game Model", func() {
 				Expect(dbItem.Key).To(Equal(key))
 				Expect(dbItem.Metadata).To(BeEquivalentTo(meta))
 				Expect(dbItem.WeightPerDonation).To(Equal(3))
-				Expect(dbItem.LimitOfCardsInEachDonationRequest).To(Equal(1))
-				Expect(dbItem.LimitOfCardsPerPlayerDonation).To(Equal(2))
+				Expect(dbItem.LimitOfItemsInEachDonationRequest).To(Equal(1))
+				Expect(dbItem.LimitOfItemsPerPlayerDonation).To(Equal(2))
 			})
 
 			It("Should add multiple items to a game", func() {
@@ -241,8 +241,8 @@ var _ = Describe("Game Model", func() {
 					dbItem := dbGame.Items[key]
 					Expect(dbItem.Metadata).To(BeEquivalentTo(meta))
 					Expect(dbItem.WeightPerDonation).To(Equal(3))
-					Expect(dbItem.LimitOfCardsInEachDonationRequest).To(Equal(1))
-					Expect(dbItem.LimitOfCardsPerPlayerDonation).To(Equal(2))
+					Expect(dbItem.LimitOfItemsInEachDonationRequest).To(Equal(1))
+					Expect(dbItem.LimitOfItemsPerPlayerDonation).To(Equal(2))
 				}
 			})
 
@@ -267,8 +267,8 @@ var _ = Describe("Game Model", func() {
 				dbItem := dbGame.Items[key]
 				Expect(dbItem.Metadata).To(BeEquivalentTo(meta2))
 				Expect(dbItem.WeightPerDonation).To(Equal(6))
-				Expect(dbItem.LimitOfCardsInEachDonationRequest).To(Equal(4))
-				Expect(dbItem.LimitOfCardsPerPlayerDonation).To(Equal(5))
+				Expect(dbItem.LimitOfItemsInEachDonationRequest).To(Equal(4))
+				Expect(dbItem.LimitOfItemsPerPlayerDonation).To(Equal(5))
 			})
 		})
 

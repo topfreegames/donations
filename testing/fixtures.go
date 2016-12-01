@@ -13,8 +13,8 @@ import (
 //GetTestGame to use in tests
 func GetTestGame(db *mgo.Database, logger zap.Logger, withItems bool, options ...map[string]interface{}) (*models.Game, error) {
 	opt := map[string]interface{}{
-		"LimitOfCardsInEachDonationRequest": 6,
-		"LimitOfCardsPerPlayerDonation":     2,
+		"LimitOfItemsInEachDonationRequest": 6,
+		"LimitOfItemsPerPlayerDonation":     2,
 		"WeightPerDonation":                 1,
 		"DonationRequestCooldownHours":      24,
 		"DonationCooldownHours":             8,
@@ -41,8 +41,8 @@ func GetTestGame(db *mgo.Database, logger zap.Logger, withItems bool, options ..
 		for i := 0; i < 10; i++ {
 			_, err = game.AddItem(
 				fmt.Sprintf("item-%d", i), map[string]interface{}{"x": i},
-				opt["LimitOfCardsInEachDonationRequest"].(int),
-				opt["LimitOfCardsPerPlayerDonation"].(int),
+				opt["LimitOfItemsInEachDonationRequest"].(int),
+				opt["LimitOfItemsPerPlayerDonation"].(int),
 				opt["WeightPerDonation"].(int),
 				db, logger,
 			)

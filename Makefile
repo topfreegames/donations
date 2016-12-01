@@ -1,3 +1,5 @@
+.PHONY: docs db
+
 PACKAGES = $(shell glide novendor)
 OS = "$(shell uname | awk '{ print tolower($$0) }')"
 
@@ -140,7 +142,7 @@ docker-services-ci-shutdown:
 	@docker-compose -p donations-ci -f ./docker-compose-ci.yml stop
 	@docker-compose -p donations-ci -f ./docker-compose-ci.yml rm -f
 
-rtfd: update-version
+rtfd docs: update-version
 	@rm -rf docs/_build
 	@sphinx-build -b html -d ./docs/_build/doctrees ./docs/ docs/_build/html
 	@open docs/_build/html/index.html

@@ -58,8 +58,8 @@ func UpsertItemHandler(app *App) func(c echo.Context) error {
 			err = WithSegment("Item", c, func() error {
 				item, err = game.AddItem(
 					itemKey, payload.Metadata,
-					payload.LimitOfCardsInEachDonationRequest,
-					payload.LimitOfCardsPerPlayerDonation,
+					payload.LimitOfItemsInEachDonationRequest,
+					payload.LimitOfItemsPerPlayerDonation,
 					payload.WeightPerDonation,
 					app.MongoDb, app.Logger,
 				)

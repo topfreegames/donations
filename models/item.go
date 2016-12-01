@@ -15,8 +15,8 @@ type Item struct {
 	Key      string                 `json:"item" bson:"key,omitempty"`
 	Metadata map[string]interface{} `json:"metadata" bson:"metadata"`
 
-	LimitOfCardsInEachDonationRequest int `json:"limitOfCardsInEachDonationRequest" bson:"limitOfCardsInEachDonationRequest"`
-	LimitOfCardsPerPlayerDonation     int `json:"limitOfCardsPerPlayerDonation" bson:"limitOfCardsPerPlayerDonation"`
+	LimitOfItemsInEachDonationRequest int `json:"limitOfItemsInEachDonationRequest" bson:"limitOfItemsInEachDonationRequest"`
+	LimitOfItemsPerPlayerDonation     int `json:"limitOfItemsPerPlayerDonation" bson:"limitOfItemsPerPlayerDonation"`
 
 	//This weight counts for the donation cooldown limits of each player
 	WeightPerDonation int `json:"weightPerDonation" bson:"weightPerDonation"`
@@ -28,15 +28,15 @@ type Item struct {
 func NewItem(
 	key string, metadata map[string]interface{},
 	weightPerDonation,
-	limitOfCardsPerPlayerDonation,
-	limitOfCardsInEachDonationRequest int,
+	limitOfItemsPerPlayerDonation,
+	limitOfItemsInEachDonationRequest int,
 ) *Item {
 	return &Item{
 		Key:                               key,
 		Metadata:                          metadata,
 		WeightPerDonation:                 weightPerDonation,
-		LimitOfCardsPerPlayerDonation:     limitOfCardsPerPlayerDonation,
-		LimitOfCardsInEachDonationRequest: limitOfCardsInEachDonationRequest,
+		LimitOfItemsPerPlayerDonation:     limitOfItemsPerPlayerDonation,
+		LimitOfItemsInEachDonationRequest: limitOfItemsInEachDonationRequest,
 		UpdatedAt:                         time.Now().UTC().Unix(),
 	}
 }

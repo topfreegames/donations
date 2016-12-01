@@ -78,16 +78,16 @@ func (g *Game) Save(db *mgo.Database, logger zap.Logger) error {
 //AddItem to this game
 func (g *Game) AddItem(
 	key string, metadata map[string]interface{},
-	limitOfCardsInEachDonationRequest,
-	limitOfCardsPerPlayerDonation,
+	limitOfItemsInEachDonationRequest,
+	limitOfItemsPerPlayerDonation,
 	weightPerDonation int,
 	db *mgo.Database, logger zap.Logger,
 ) (*Item, error) {
 	item := NewItem(
 		key, metadata,
 		weightPerDonation,
-		limitOfCardsPerPlayerDonation,
-		limitOfCardsInEachDonationRequest,
+		limitOfItemsPerPlayerDonation,
+		limitOfItemsInEachDonationRequest,
 	)
 	g.Items[key] = *item
 	err := g.Save(db, logger)
@@ -97,6 +97,7 @@ func (g *Game) AddItem(
 	return item, nil
 }
 
+//ToJSON marshals game to json
 func (g *Game) ToJSON() ([]byte, error) {
 	w := jwriter.Writer{}
 	g.MarshalEasyJSON(&w)

@@ -52,10 +52,10 @@ func easyjsonA8a797f8DecodeGithubComTopfreegamesDonationsApi(in *jlexer.Lexer, o
 			}
 		case "weightPerDonation":
 			out.WeightPerDonation = int(in.Int())
-		case "limitOfCardsPerPlayerDonation":
-			out.LimitOfCardsPerPlayerDonation = int(in.Int())
-		case "limitOfCardsInEachDonationRequest":
-			out.LimitOfCardsInEachDonationRequest = int(in.Int())
+		case "limitOfItemsPerPlayerDonation":
+			out.LimitOfItemsPerPlayerDonation = int(in.Int())
+		case "limitOfItemsInEachDonationRequest":
+			out.LimitOfItemsInEachDonationRequest = int(in.Int())
 		default:
 			in.SkipRecursive()
 		}
@@ -102,14 +102,14 @@ func easyjsonA8a797f8EncodeGithubComTopfreegamesDonationsApi(out *jwriter.Writer
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"limitOfCardsPerPlayerDonation\":")
-	out.Int(int(in.LimitOfCardsPerPlayerDonation))
+	out.RawString("\"limitOfItemsPerPlayerDonation\":")
+	out.Int(int(in.LimitOfItemsPerPlayerDonation))
 	if !first {
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"limitOfCardsInEachDonationRequest\":")
-	out.Int(int(in.LimitOfCardsInEachDonationRequest))
+	out.RawString("\"limitOfItemsInEachDonationRequest\":")
+	out.Int(int(in.LimitOfItemsInEachDonationRequest))
 	out.RawByte('}')
 }
 

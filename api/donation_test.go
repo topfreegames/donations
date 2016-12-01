@@ -99,7 +99,7 @@ var _ = Describe("Game Handler", func() {
 				results := []map[string]interface{}{}
 
 				game, err := GetTestGame(app.MongoDb, app.Logger, true, map[string]interface{}{
-					"LimitOfCardsInEachDonationRequest": 2,
+					"LimitOfItemsInEachDonationRequest": 2,
 				})
 				Expect(err).NotTo(HaveOccurred())
 

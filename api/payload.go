@@ -151,8 +151,8 @@ func (dp *DonationPayload) ToJSON() ([]byte, error) {
 type UpsertItemPayload struct {
 	Metadata                          map[string]interface{} `json:"metadata"`
 	WeightPerDonation                 int                    `json:"weightPerDonation"`
-	LimitOfCardsPerPlayerDonation     int                    `json:"limitOfCardsPerPlayerDonation"`
-	LimitOfCardsInEachDonationRequest int                    `json:"limitOfCardsInEachDonationRequest"`
+	LimitOfItemsPerPlayerDonation     int                    `json:"limitOfItemsPerPlayerDonation"`
+	LimitOfItemsInEachDonationRequest int                    `json:"limitOfItemsInEachDonationRequest"`
 }
 
 //Validate all the required fields for creating a game
@@ -160,8 +160,8 @@ func (uip *UpsertItemPayload) Validate() []string {
 	v := NewValidation()
 	v.validateRequiredMap("amount", uip.Metadata)
 	v.validateRequiredInt("weightPerDonation", uip.WeightPerDonation)
-	v.validateRequiredInt("limitOfCardsPerPlayerDonation", uip.LimitOfCardsPerPlayerDonation)
-	v.validateRequiredInt("limitOfCardsInEachDonationRequest", uip.LimitOfCardsInEachDonationRequest)
+	v.validateRequiredInt("limitOfItemsPerPlayerDonation", uip.LimitOfItemsPerPlayerDonation)
+	v.validateRequiredInt("limitOfItemsInEachDonationRequest", uip.LimitOfItemsInEachDonationRequest)
 	return v.Errors()
 }
 

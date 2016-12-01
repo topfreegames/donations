@@ -14,6 +14,10 @@ redis:
 sentry:
   url: ""
 
+newrelic:
+  key: ""
+  appName: "donations"
+
 api:
   maxReadBufferSize: 80240
   basicAuth:

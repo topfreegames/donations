@@ -36,8 +36,8 @@ var _ = Describe("Item Model", func() {
 				item := &models.Item{
 					Key:      "some-key",
 					Metadata: map[string]interface{}{"x": 1},
-					LimitOfCardsInEachDonationRequest: 2,
-					LimitOfCardsPerPlayerDonation:     3,
+					LimitOfItemsInEachDonationRequest: 2,
+					LimitOfItemsPerPlayerDonation:     3,
 					WeightPerDonation:                 4,
 					UpdatedAt:                         400,
 				}
@@ -50,8 +50,8 @@ var _ = Describe("Item Model", func() {
 
 				Expect(rr.Key).To(Equal(item.Key))
 				Expect(int(rr.Metadata["x"].(float64))).To(Equal(1))
-				Expect(rr.LimitOfCardsInEachDonationRequest).To(BeEquivalentTo(item.LimitOfCardsInEachDonationRequest))
-				Expect(rr.LimitOfCardsPerPlayerDonation).To(BeEquivalentTo(item.LimitOfCardsPerPlayerDonation))
+				Expect(rr.LimitOfItemsInEachDonationRequest).To(BeEquivalentTo(item.LimitOfItemsInEachDonationRequest))
+				Expect(rr.LimitOfItemsPerPlayerDonation).To(BeEquivalentTo(item.LimitOfItemsPerPlayerDonation))
 				Expect(rr.WeightPerDonation).To(BeEquivalentTo(item.WeightPerDonation))
 			})
 		})

@@ -42,8 +42,8 @@ var _ = Describe("Game Handler", func() {
 				payload := &api.UpsertItemPayload{
 					Metadata:                          meta,
 					WeightPerDonation:                 1,
-					LimitOfCardsPerPlayerDonation:     2,
-					LimitOfCardsInEachDonationRequest: 3,
+					LimitOfItemsPerPlayerDonation:     2,
+					LimitOfItemsInEachDonationRequest: 3,
 				}
 				jsonPayload, err := payload.ToJSON()
 				Expect(err).NotTo(HaveOccurred())
@@ -59,8 +59,8 @@ var _ = Describe("Game Handler", func() {
 				Expect(item.Key).To(Equal(itemID))
 				Expect(item.Metadata["x"]).To(Equal(float64(1)))
 				Expect(item.WeightPerDonation).To(Equal(1))
-				Expect(item.LimitOfCardsPerPlayerDonation).To(Equal(2))
-				Expect(item.LimitOfCardsInEachDonationRequest).To(Equal(3))
+				Expect(item.LimitOfItemsPerPlayerDonation).To(Equal(2))
+				Expect(item.LimitOfItemsInEachDonationRequest).To(Equal(3))
 			})
 		})
 	})
