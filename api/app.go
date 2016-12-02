@@ -238,6 +238,8 @@ func (app *App) configureMongoDB() error {
 	db := session.DB(app.Config.GetString("mongo.db"))
 	app.MongoSession = session
 	app.MongoDb = db
+
+	l.Info("Connected to MongoDb successfully.")
 	return nil
 }
 
