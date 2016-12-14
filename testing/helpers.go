@@ -21,6 +21,15 @@ import (
 	"github.com/uber-go/zap"
 )
 
+//GetTestRedis returns a configured redsync connection
+func GetTestRedis() redis.Conn {
+	conn, err := redis.DialURL("redis://localhost:9998/1")
+	if err != nil {
+		panic("Failed to connect to redis")
+	}
+	return conn
+}
+
 //GetTestRedsync returns a configured redsync connection
 func GetTestRedsync() *redsync.Redsync {
 	return redsync.New([]redsync.Pool{
@@ -79,6 +88,7 @@ func getMongoDB(host, port, db string) (*mgo.Session, *mgo.Database) {
 	return session, database
 }
 
+//GetConfPath returns teh configuration path
 func GetConfPath() string {
 	conf := "../config/test.yaml"
 	return conf

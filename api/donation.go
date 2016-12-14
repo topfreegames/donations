@@ -3,6 +3,8 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/topfreegames/donations/log"
 	"github.com/topfreegames/donations/models"
@@ -162,10 +164,11 @@ func CreateDonationHandler(app *App) func(c echo.Context) error {
 				return err
 			}
 
-			err = donationRequest.Donate(payload.Player, payload.Amount, payload.MaxWeightPerPlayer, app.MongoDb, app.Logger)
+			err = donationRequest.Donate(payload.Player, payload.Amount, payload.MaxWeightPerPlayer, app.Redis, app.MongoDb, app.Logger)
 			if err != nil {
 				return err
 			}
+
 			return nil
 		})
 		if err != nil {
@@ -181,5 +184,53 @@ func CreateDonationHandler(app *App) func(c echo.Context) error {
 		}
 
 		return c.String(http.StatusOK, "{\"success\":true}")
+	}
+}
+
+func toTime(val string) int64 {
+	var err error
+	var res int64
+	if val != "" {
+		res, err = strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			res = time.Now().UTC().Unix()
+		}
+	} else {
+		res = time.Now().UTC().Unix()
+	}
+
+	return res
+}
+
+//GetDonationWeightByClanHandler is the handler responsible for creating donation requests
+func GetDonationWeightByClanHandler(app *App) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		l := app.Logger.With(
+			zap.String("source", "GetDonationWeightByClanHandler"),
+			zap.String("operation", "GetDonationWeightByClan"),
+		)
+		c.Set("route", "CreateDonation")
+		gameID := c.Param("gameID")
+		clanID := c.QueryParam("clanID")
+		resetTypeStr := c.QueryParam("type")
+		var resetType models.ResetType
+		switch resetTypeStr {
+		case "daily":
+			resetType = models.DailyReset
+		case "weekly":
+			resetType = models.WeeklyReset
+		case "monthly":
+			resetType = models.MonthlyReset
+		default:
+			resetType = models.NoReset
+		}
+
+		log.D(l, "Getting clan weight...")
+		weight, err := models.GetDonationWeightForClan(gameID, clanID, time.Now(), resetType, app.Redis, app.Logger)
+		if err != nil {
+			return FailWith(500, err.Error(), c)
+		}
+
+		return c.String(http.StatusOK, fmt.Sprintf("{\"success\":true, \"weight\": %d}", weight))
 	}
 }

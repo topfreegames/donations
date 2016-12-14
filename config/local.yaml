@@ -4,7 +4,7 @@ healthcheck:
 mongo:
   host: localhost
   port: 9999
-  db: donations
+  db: donations-test
 
 redis:
   url: redis://localhost:6379/0

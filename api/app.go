@@ -37,6 +37,7 @@ type App struct {
 	Background   bool
 	Fast         bool
 	Redsync      *redsync.Redsync
+	Redis        redis.Conn
 	NewRelic     newrelic.Application
 }
 
@@ -167,6 +168,25 @@ func (app *App) OnErrorHandler(err error, stack []byte) {
 		"type":   "panic",
 	}
 	raven.CaptureError(e, tags)
+}
+
+func (app *App) configureRedis() error {
+	redisURL := app.Config.GetString("redis.url")
+	l := app.Logger.With(
+		zap.String("operation", "configureRedis"),
+		zap.String("redis.url", app.Config.GetString("redis.url")),
+	)
+
+	conn, err := redis.DialURL(redisURL)
+	if err != nil {
+		log.E(l, "Failed to connect to redis.", func(cm log.CM) {
+			cm.Write(zap.Error(err))
+		})
+		return err
+	}
+
+	app.Redis = conn
+	return nil
 }
 
 func (app *App) configureRedsync() error {
@@ -317,8 +337,11 @@ func (app *App) configureApplication() error {
 	//Donations routes
 	a.Post("/games/:gameID/donation-requests/:donationRequestID", CreateDonationHandler(app))
 
+	a.Get("/games/:gameID/donation-weight-by-clan", GetDonationWeightByClanHandler(app))
+
 	app.configureMongoDB()
 	app.configureRedsync()
+	app.configureRedis()
 
 	l.Debug("Application configured successfully.")
 

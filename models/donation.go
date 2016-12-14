@@ -4,8 +4,10 @@ package models
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
+	"github.com/garyburd/redigo/redis"
 	"github.com/mailru/easyjson/jlexer"
 	"github.com/mailru/easyjson/jwriter"
 	uuid "github.com/satori/go.uuid"
@@ -15,6 +17,71 @@ import (
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
+
+//ResetType represents the type of time that resets scores
+type ResetType int
+
+const (
+	//NoReset means the value does not reset
+	NoReset ResetType = iota
+	//DailyReset means the value resets daily
+	DailyReset = iota
+	//WeeklyReset means the value resets weekly
+	WeeklyReset = iota
+	//MonthlyReset means the value resets monthly
+	MonthlyReset = iota
+)
+
+//GetDonationWeightKey returns the key to be used in redis for the scores
+func GetDonationWeightKey(prefix, gameID, clanID string, date time.Time, resetType ResetType) string {
+	switch resetType {
+	case DailyReset:
+		return fmt.Sprintf(
+			"donations::donation-weight::%s::%s::%s::%s",
+			prefix,
+			gameID,
+			clanID,
+			date.Format("2006-01-02"),
+		)
+	case WeeklyReset:
+		isoYear, isoWeek := date.ISOWeek()
+		return fmt.Sprintf(
+			"donations::donation-weight::%s::%s::%s::%s",
+			prefix,
+			gameID,
+			clanID,
+			fmt.Sprintf("%d-%d", isoYear, isoWeek),
+		)
+	case MonthlyReset:
+		return fmt.Sprintf(
+			"donations::donation-weight::%s::%s::%s::%s",
+			prefix,
+			gameID,
+			clanID,
+			date.Format("2006-01"),
+		)
+	default:
+		return fmt.Sprintf("donations::donation-weight::%s::%s::%s", prefix, gameID, clanID)
+	}
+}
+
+//GetExpirationDate returns the date to set the expiration in seconds to for the given reset type
+func GetExpirationDate(date time.Time, resetType ResetType, clock Clock) int64 {
+	switch resetType {
+	case DailyReset:
+		dt := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+		return dt.AddDate(0, 0, 2).Unix() - clock.GetUTCTime().Unix()
+	case WeeklyReset:
+		day := int(date.Weekday())
+		firstDay := date.AddDate(0, 0, (-1*day + 1))
+		return firstDay.AddDate(0, 0, 14).Unix() - clock.GetUTCTime().Unix()
+	case MonthlyReset:
+		dt := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, date.Location())
+		return dt.AddDate(0, 2, 0).Unix() - clock.GetUTCTime().Unix()
+	default:
+		return 0
+	}
+}
 
 //Clock identifies a clock to be used by the model
 type Clock interface {
@@ -32,11 +99,14 @@ func (r *RealClock) GetUTCTime() time.Time {
 //Donation represents a specific donation a player made to a request
 //easyjson:json
 type Donation struct {
-	ID        string `json:"id" bson:"_id,omitempty"`
-	Player    string `json:"player" bson:"player"`
-	Amount    int    `json:"amount" bson:"amount"`
-	Weight    int    `json:"weight" bson:"weight"`
-	CreatedAt int64  `json:"createdAt" bson:"createdAt"`
+	ID                string `json:"id" bson:"_id,omitempty"`
+	GameID            string `json:"gameID" bson:"gameID"`
+	Clan              string `json:"clan" bson:"clan"`
+	Player            string `json:"player" bson:"player"`
+	DonationRequestID string `json:"donationRequestID" bson:"donationRequestID"`
+	Amount            int    `json:"amount" bson:"amount"`
+	Weight            int    `json:"weight" bson:"weight"`
+	CreatedAt         int64  `json:"createdAt" bson:"createdAt"`
 }
 
 //DonationRequest represents a request for an item donation a player made in a game
@@ -246,7 +316,7 @@ func (d *DonationRequest) validateDonationCooldownPerPlayer(
 }
 
 //Donate an item in a given Donation Request
-func (d *DonationRequest) Donate(playerID string, amount, maxWeightPerPlayer int, db *mgo.Database, logger zap.Logger) error {
+func (d *DonationRequest) Donate(playerID string, amount, maxWeightPerPlayer int, r redis.Conn, db *mgo.Database, logger zap.Logger) error {
 	l := logger.With(
 		zap.String("source", "DonationRequestModel"),
 		zap.String("operation", "Donate"),
@@ -305,7 +375,7 @@ func (d *DonationRequest) Donate(playerID string, amount, maxWeightPerPlayer int
 	}
 
 	log.D(l, "Saving donation...")
-	err = d.insertDonationAndUpdatePlayer(player, amount, game, db, l)
+	err = d.insertDonationAndUpdatePlayer(player, amount, game, r, db, l)
 	if err != nil {
 		log.E(l, err.Error(), func(cm log.CM) {
 			cm.Write(zap.Error(err))
@@ -322,20 +392,38 @@ func (d *DonationRequest) Donate(playerID string, amount, maxWeightPerPlayer int
 func (d *DonationRequest) insertDonationAndUpdatePlayer(
 	player *Player, amount int,
 	game *Game,
+	r redis.Conn,
 	db *mgo.Database, l zap.Logger,
 ) error {
 	log.D(l, "Saving donation...")
 
 	txID := uuid.NewV4().String()
+	rb := func() error {
+		err := GetDonationRequestsCollection(db).Update(
+			bson.M{"_id": d.ID},
+			bson.M{"$pull": bson.M{"donations": bson.M{"$eq": []string{"txID", txID}}}},
+		)
+		return err
+	}
 
-	donation := Donation{Player: player.ID, Amount: amount}
+	item := game.Items[d.Item]
+
+	donation := Donation{
+		ID:                uuid.NewV4().String(),
+		GameID:            d.GameID,
+		Clan:              d.Clan,
+		Player:            player.ID,
+		DonationRequestID: d.ID,
+		Amount:            amount,
+		Weight:            item.WeightPerDonation,
+		CreatedAt:         d.Clock.GetUTCTime().Unix(),
+	}
 	d.Donations = append(d.Donations, donation)
 
 	set := bson.M{
 		"updatedAt": d.Clock.GetUTCTime().Unix(),
 	}
 
-	item := game.Items[d.Item]
 	if d.GetDonationCount()+amount >= item.LimitOfItemsInEachDonationRequest {
 		set["finishedAt"] = d.Clock.GetUTCTime().Unix()
 	}
@@ -344,11 +432,13 @@ func (d *DonationRequest) insertDonationAndUpdatePlayer(
 	update := bson.M{
 		"$set": set,
 		"$push": bson.M{"donations": bson.M{
-			"_id":       uuid.NewV4().String(),
-			"player":    player.ID,
-			"amount":    amount,
+			"_id":       donation.ID,
+			"gameID":    donation.GameID,
+			"clan":      donation.Clan,
+			"player":    donation.Player,
+			"amount":    donation.Amount,
 			"weight":    item.WeightPerDonation,
-			"createdAt": d.Clock.GetUTCTime().Unix(),
+			"createdAt": donation.CreatedAt,
 			"txID":      txID,
 		}},
 	}
@@ -359,6 +449,15 @@ func (d *DonationRequest) insertDonationAndUpdatePlayer(
 		log.E(l, "Failed to add donation.", func(cm log.CM) {
 			cm.Write(zap.Error(err))
 		})
+		return err
+	}
+
+	err = GetDonationsCollection(db).Insert(donation)
+	if err != nil {
+		log.E(l, "Failed to add donation.", func(cm log.CM) {
+			cm.Write(zap.Error(err))
+		})
+		err = rb()
 		return err
 	}
 
@@ -380,12 +479,21 @@ func (d *DonationRequest) insertDonationAndUpdatePlayer(
 			log.E(l, "Failed to set player update window start.", func(cm log.CM) {
 				cm.Write(zap.Error(err))
 			})
-			err = GetDonationRequestsCollection(db).Update(
-				bson.M{"_id": d.ID},
-				bson.M{"$pull": bson.M{"donations": bson.M{"$eq": []string{"txID", txID}}}},
-			)
+			err = rb()
 			return err
 		}
+	}
+
+	err = IncrementDonationWeightForClan(r, d.GameID, d.Clan, donation.Weight, d.Clock)
+	if err != nil {
+		err = rb()
+		return err
+	}
+
+	err = IncrementDonationWeightForPlayer(r, d.GameID, donation.Player, donation.Weight, d.Clock)
+	if err != nil {
+		err = rb()
+		return err
 	}
 
 	return nil
@@ -484,6 +592,11 @@ func GetDonationRequestsCollection(db *mgo.Database) *mgo.Collection {
 	return db.C("requests")
 }
 
+//GetDonationsCollection to update or query games
+func GetDonationsCollection(db *mgo.Database) *mgo.Collection {
+	return db.C("donations")
+}
+
 //GetDonationRequestByID rtrieves the game by its id
 func GetDonationRequestByID(id string, db *mgo.Database, logger zap.Logger) (*DonationRequest, error) {
 	var donationRequest DonationRequest
@@ -545,4 +658,64 @@ func GetDonationWeightForPlayer(playerID string, from, to int64, db *mgo.Databas
 	}
 
 	return resp[0]["totalWeight"].(int), nil
+}
+
+//GetDonationWeightForClan returns the donation weight for a clan in a given interval
+func GetDonationWeightForClan(gameID, clanID string, dt time.Time, resetType ResetType, r redis.Conn, logger zap.Logger) (int, error) {
+	key := GetDonationWeightKey("clan", gameID, clanID, dt, resetType)
+	result, err := r.Do("GET", key)
+	if err != nil {
+		return 0, err
+	}
+	if result == nil {
+		return 0, nil
+	}
+	res, err := strconv.ParseInt(string(result.([]uint8)), 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return int(res), nil
+}
+
+//IncrementDonationWeightForClan should increment the donation weight for a clan for all time periods
+func IncrementDonationWeightForClan(redis redis.Conn, gameID, clanID string, weight int, clock Clock) error {
+	return incrementDonationWeight(redis, "clan", gameID, clanID, weight, clock)
+}
+
+//IncrementDonationWeightForPlayer should increment the donation weight for a player for all time periods
+func IncrementDonationWeightForPlayer(redis redis.Conn, gameID, playerID string, weight int, clock Clock) error {
+	return incrementDonationWeight(redis, "player", gameID, playerID, weight, clock)
+}
+
+func incrementDonationWeight(redis redis.Conn, prefix, gameID, id string, weight int, clock Clock) error {
+	if redis == nil {
+		return fmt.Errorf("The redis client must not be nil and must be connected to redis.")
+	}
+	dt := clock.GetUTCTime()
+	key := GetDonationWeightKey(prefix, gameID, id, dt, NoReset)
+
+	dailyKey := GetDonationWeightKey(prefix, gameID, id, dt, DailyReset)
+	dailyExpiration := GetExpirationDate(dt, DailyReset, clock)
+
+	weeklyKey := GetDonationWeightKey(prefix, gameID, id, dt, WeeklyReset)
+	weeklyExpiration := GetExpirationDate(dt, WeeklyReset, clock)
+
+	monthlyKey := GetDonationWeightKey(prefix, gameID, id, dt, MonthlyReset)
+	monthlyExpiration := GetExpirationDate(dt, MonthlyReset, clock)
+
+	redis.Send("MULTI")
+
+	redis.Send("INCRBY", key, weight)
+	redis.Send("INCRBY", dailyKey, weight)
+	redis.Send("INCRBY", weeklyKey, weight)
+	redis.Send("INCRBY", monthlyKey, weight)
+	redis.Send("EXPIRE", dailyKey, dailyExpiration)
+	redis.Send("EXPIRE", weeklyKey, weeklyExpiration)
+	redis.Send("EXPIRE", monthlyKey, monthlyExpiration)
+
+	_, err := redis.Do("EXEC")
+	if err != nil {
+		return err
+	}
+	return nil
 }
