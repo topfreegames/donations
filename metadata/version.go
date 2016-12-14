@@ -17,7 +17,7 @@ type Version struct {
 var VERSION = &Version{
 	Major:            0,
 	Minor:            1,
-	Patch:            0,
+	Patch:            1,
 	ReleaseCandidate: 0,
 	Beta:             false,
 }
