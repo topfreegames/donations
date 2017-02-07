@@ -149,7 +149,7 @@ Donations API
 
     * `item` is the key for the item to create the donation request for;
     * `player` is the player id that will receive the donations;
-    * `clan` is the team/clan/group the player belongs to. This is useful for grouping donations.
+    * `clan` is the team/clan/group the player belongs to. This is useful for grouping donations. Leave this empty if player does not belong to a team/clan/group.
 
   * Success Response
     * Code: `200`
