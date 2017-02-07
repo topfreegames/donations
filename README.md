@@ -12,12 +12,12 @@ Donations is an HTTP API to control donations made by players in clans in games.
 
 ### Features
 
-[x] Multi-game support;
-[x] Donatable items per game;
-[x] Donation requests for items created with specific settings per game;
-[x] Donations made to donation requests;
-[x] Daily, weekly, monthly and overall donation weight per clan;
-[ ] Daily, weekly, monthly and overall donation weight per player.
+- [x] Multi-game support;
+- [x] Donatable items per game;
+- [x] Donation requests for items created with specific settings per game;
+- [x] Donations made to donation requests;
+- [x] Daily, weekly, monthly and overall donation weight per clan;
+- [ ] Daily, weekly, monthly and overall donation weight per player.
 
 ## Hacking Donations
 
