@@ -94,6 +94,33 @@ var _ = Describe("Game Handler", func() {
 				Expect(body).To(Equal("{\"success\":true}"))
 			})
 
+			It("Should succeed if player has no clan", func() {
+				game, err := GetTestGame(app.MongoDb, app.Logger, true)
+				Expect(err).NotTo(HaveOccurred())
+
+				player, err := GetTestPlayer(game, app.MongoDb, app.Logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				donation, err := GetTestDonationRequest(game, app.MongoDb, app.Logger, "")
+				Expect(err).NotTo(HaveOccurred())
+
+				playerID := player.ID
+				payload := &api.DonationPayload{
+					Player:             playerID,
+					Amount:             1,
+					MaxWeightPerPlayer: 50,
+				}
+				jsonPayload, err := payload.ToJSON()
+				Expect(err).NotTo(HaveOccurred())
+				status, body := Post(
+					app,
+					fmt.Sprintf("/games/%s/donation-requests/%s/", game.ID, donation.ID),
+					string(jsonPayload),
+				)
+				Expect(status).To(Equal(http.StatusOK))
+				Expect(body).To(Equal("{\"success\":true}"))
+			})
+
 			It("Should not donate more than allowed", func() {
 				var wg sync.WaitGroup
 				results := []map[string]interface{}{}

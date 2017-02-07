@@ -484,10 +484,12 @@ func (d *DonationRequest) insertDonationAndUpdatePlayer(
 		}
 	}
 
-	err = IncrementDonationWeightForClan(r, d.GameID, d.Clan, donation.Weight, d.Clock)
-	if err != nil {
-		err = rb()
-		return err
+	if d.Clan != "" {
+		err = IncrementDonationWeightForClan(r, d.GameID, d.Clan, donation.Weight, d.Clock)
+		if err != nil {
+			err = rb()
+			return err
+		}
 	}
 
 	err = IncrementDonationWeightForPlayer(r, d.GameID, donation.Player, donation.Weight, d.Clock)

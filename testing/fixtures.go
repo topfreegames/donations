@@ -66,8 +66,12 @@ func buildTestDonationRequest(game *models.Game, clanID string) *models.Donation
 }
 
 //GetTestDonationRequest to use in tests
-func GetTestDonationRequest(game *models.Game, db *mgo.Database, logger zap.Logger) (*models.DonationRequest, error) {
-	donationRequest := buildTestDonationRequest(game, uuid.NewV4().String())
+func GetTestDonationRequest(game *models.Game, db *mgo.Database, logger zap.Logger, clanIDOrNil ...string) (*models.DonationRequest, error) {
+	clanID := uuid.NewV4().String()
+	if len(clanIDOrNil) == 1 {
+		clanID = clanIDOrNil[0]
+	}
+	donationRequest := buildTestDonationRequest(game, clanID)
 	err := donationRequest.Create(db, logger)
 	return donationRequest, err
 }
