@@ -309,7 +309,7 @@ func (d *DonationRequest) validateDonationCooldownPerPlayer(
 			GameID:               game.ID,
 			PlayerID:             player.ID,
 			TotalWeightForPeriod: totalWeight,
-			MaxWeightForPerior:   maxWeightPerPlayer,
+			MaxWeightForPeriod:   maxWeightPerPlayer,
 		}
 	}
 	return nil

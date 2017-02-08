@@ -90,7 +90,7 @@ type DonationCooldownViolatedError struct {
 	GameID               string
 	PlayerID             string
 	TotalWeightForPeriod int
-	MaxWeightForPerior   int
+	MaxWeightForPeriod   int
 }
 
 //Error string

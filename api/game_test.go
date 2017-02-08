@@ -72,5 +72,19 @@ var _ = Describe("Game Handler", func() {
 			Expect(rGame.ID).To(Equal(id))
 			Expect(rGame.Name).To(Equal(gameName))
 		})
+
+		FIt("Should fail with payload if error", func() {
+			id := uuid.NewV4().String()
+			gameName := uuid.NewV4().String()
+			payload := &api.UpdateGamePayload{
+				Name: gameName,
+			}
+			jsonPayload, err := payload.ToJSON()
+			Expect(err).NotTo(HaveOccurred())
+			status, body := Put(app, fmt.Sprintf("/games/%s", id), string(jsonPayload))
+			Expect(status).To(Equal(http.StatusBadRequest), body)
+
+			Expect(body).To(Equal("qwe"))
+		})
 	})
 })

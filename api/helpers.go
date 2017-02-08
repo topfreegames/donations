@@ -9,19 +9,30 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	"github.com/labstack/echo"
 	"github.com/mailru/easyjson/jlexer"
 	"github.com/mailru/easyjson/jwriter"
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/topfreegames/donations/errors"
 	"github.com/topfreegames/donations/log"
 	"github.com/uber-go/zap"
 )
+
+//SerializableError indicates an error can be turned into json bytes
+type SerializableError interface {
+	JSON() []byte
+}
+
+func getErrorBody(err error) string {
+	if sErr, ok := err.(SerializableError); ok {
+		return string(sErr.JSON())
+	}
+	return err.Error()
+}
 
 //EasyJSONUnmarshaler describes a struct able to unmarshal json
 type EasyJSONUnmarshaler interface {
@@ -35,9 +46,10 @@ type EasyJSONMarshaler interface {
 
 // FailWith fails with the specified message
 func FailWith(status int, message string, c echo.Context) error {
-	msg := fmt.Sprintf(`{"success":false,"reason":"%s"}`, message)
-	c.Set("text", msg)
-	return c.String(status, msg)
+	//msg := fmt.Sprintf(`{"success":false,"reason":"%s"}`, message)
+	//c.Set("text", msg)
+	c.Set("text", message)
+	return c.String(status, message)
 }
 
 // SucceedWith sends payload to user with status 200
@@ -86,10 +98,12 @@ func LoadJSONPayload(payloadStruct interface{}, c echo.Context, l zap.Logger) er
 	}
 
 	if validatable, ok := payloadStruct.(Validatable); ok {
-		missingFieldErrors := validatable.Validate()
+		failedValidations := validatable.Validate()
 
-		if len(missingFieldErrors) != 0 {
-			err := errors.New(strings.Join(missingFieldErrors[:], ", "))
+		if len(failedValidations) != 0 {
+			err := &errors.InvalidPayloadError{
+				FailedValidations: failedValidations,
+			}
 			log.E(l, "Loading payload failed.", func(cm log.CM) {
 				cm.Write(zap.Error(err))
 			})

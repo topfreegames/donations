@@ -28,7 +28,7 @@ func UpdateGameHandler(app *App) func(c echo.Context) error {
 			log.E(l, "Invalid json payload!", func(cm log.CM) {
 				cm.Write(zap.Error(err))
 			})
-			return FailWith(400, err.Error(), c)
+			return FailWith(400, getErrorBody(err), c)
 		}
 
 		game, err := models.GetGameByID(gameID, app.MongoDb, app.Logger)
