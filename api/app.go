@@ -337,6 +337,9 @@ func (app *App) configureApplication() error {
 	//Donations routes
 	a.Post("/games/:gameID/donation-requests/:donationRequestID", CreateDonationHandler(app))
 
+	//Donations routes
+	a.Get("/games/:gameID/donation-requests-by-clan", GetDonationsByClanHandler(app))
+
 	a.Get("/games/:gameID/donation-weight-by-clan", GetDonationWeightByClanHandler(app))
 
 	app.configureMongoDB()

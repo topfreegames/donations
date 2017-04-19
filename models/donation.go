@@ -679,6 +679,18 @@ func GetDonationWeightForClan(gameID, clanID string, dt time.Time, resetType Res
 	return int(res), nil
 }
 
+func GetDonationRequestsCollectionForClan(gameID, clanID string, db *mgo.Databaser redis.Conn, logger zap.Logger) ([]*DonationRequest, error)
+{
+	var requests []*DonationRequest
+	err := GetDonationRequestsCollection(db).Find(bson.M{"clanID" : clanID, "gameID" : gameID}).All(&requests)
+
+	if(err != nil){
+		return nil, err
+	}
+
+	return requests, nil
+}
+
 //IncrementDonationWeightForClan should increment the donation weight for a clan for all time periods
 func IncrementDonationWeightForClan(redis redis.Conn, gameID, clanID string, weight int, clock Clock) error {
 	return incrementDonationWeight(redis, "clan", gameID, clanID, weight, clock)

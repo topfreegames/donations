@@ -234,3 +234,26 @@ func GetDonationWeightByClanHandler(app *App) func(c echo.Context) error {
 		return c.String(http.StatusOK, fmt.Sprintf("{\"success\":true, \"weight\": %d}", weight))
 	}
 }
+
+//GetDonationsByClanHandler is the handler responsible for creating donation requests
+func GetDonationsByClanHandler(app *App) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		l := app.Logger.With(
+			zap.String("source", "GetDonationsByClanHandler"),
+			zap.String("operation", "GetDonationRequestsCollectionForClan"),
+		)
+		c.Set("route", "CreateDonation")
+		gameID := c.Param("gameID")
+		clanID := c.QueryParam("clanID")
+
+		log.D(l, "Getting clan donations...")
+		donations, err := models.GetDonationRequestsCollectionForClan(gameID, clanID, app.MongoDb, app.Logger)
+		if err != nil {
+			return FailWith(500, err.Error(), c)
+		}
+
+		donationJson := json.Marshal(donations)
+
+		return c.String(http.StatusOK, fmt.Sprintf("{\"success\":true, \"donations\": %d}", donationJson))
+	}
+}
