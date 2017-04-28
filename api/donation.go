@@ -244,7 +244,7 @@ func GetDonationsByClanHandler(app *App) func(c echo.Context) error {
 		)
 		c.Set("route", "CreateDonation")
 		gameID := c.Param("gameID")
-		clanID := c.QueryParam("clanID")
+		clanID := c.QueryParam("clan")
 
 		log.D(l, "Getting clan donations...")
 		donations, err := models.GetDonationRequestsCollectionForClan(gameID, clanID, app.MongoDb, app.Logger)

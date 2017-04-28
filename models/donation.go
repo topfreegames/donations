@@ -107,6 +107,7 @@ type Donation struct {
 	Amount            int    `json:"amount" bson:"amount"`
 	Weight            int    `json:"weight" bson:"weight"`
 	CreatedAt         int64  `json:"createdAt" bson:"createdAt"`
+	Metadata          map[string]interface{} `json:"metadata" bson:"metadata"`
 }
 
 //DonationRequest represents a request for an item donation a player made in a game
@@ -417,6 +418,7 @@ func (d *DonationRequest) insertDonationAndUpdatePlayer(
 		Amount:            amount,
 		Weight:            item.WeightPerDonation,
 		CreatedAt:         d.Clock.GetUTCTime().Unix(),
+		Metadata: 		   d.Metadata
 	}
 	d.Donations = append(d.Donations, donation)
 
@@ -439,6 +441,7 @@ func (d *DonationRequest) insertDonationAndUpdatePlayer(
 			"amount":    donation.Amount,
 			"weight":    item.WeightPerDonation,
 			"createdAt": donation.CreatedAt,
+			"metadata":  donation.Metadata,
 			"txID":      txID,
 		}},
 	}
@@ -682,7 +685,7 @@ func GetDonationWeightForClan(gameID, clanID string, dt time.Time, resetType Res
 func GetDonationRequestsCollectionForClan(gameID, clanID string, db *mgo.Databaser redis.Conn, logger zap.Logger) ([]*DonationRequest, error)
 {
 	var requests []*DonationRequest
-	err := GetDonationRequestsCollection(db).Find(bson.M{"clanID" : clanID, "gameID" : gameID}).All(&requests)
+	err := GetDonationRequestsCollection(db).Find(bson.M{"clan" : clanID, "gameID" : gameID}).All(&requests)
 
 	if(err != nil){
 		return nil, err
