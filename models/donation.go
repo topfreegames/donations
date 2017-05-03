@@ -685,7 +685,7 @@ func GetDonationWeightForClan(gameID, clanID string, dt time.Time, resetType Res
 func GetDonationRequestsCollectionForClan(gameID, clanID string, db *mgo.Databaser redis.Conn, logger zap.Logger) ([]*DonationRequest, error)
 {
 	var requests []*DonationRequest
-	err := GetDonationRequestsCollection(db).Find(bson.M{"clan" : clanID, "gameID" : gameID}).All(&requests)
+	err := GetDonationRequestsCollection(db).Find(bson.M{"clan" : clanID, "gameID" : gameID, "finishedAt" : nil}).All(&requests)
 
 	if(err != nil){
 		return nil, err
